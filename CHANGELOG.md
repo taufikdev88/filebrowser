@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file. For commit 
 
  **Notes**:
  - `.fbx` 3d model files added to supported previews.
+ - removed upx compression on docker image (#2193)
 
  **BugFixes**:
  - Archives don't preserve file metadata (#2063)
