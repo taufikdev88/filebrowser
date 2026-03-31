@@ -5,10 +5,10 @@
       <!-- Close button visible when search is active -->
       <button v-if="active" class="action" @click="close" :aria-label="$t('general.close')"
         :title="$t('general.close')">
-        <i class="material-icons">close</i>
+        <i class="material-symbols">close</i>
       </button>
       <!-- Search icon when search is not active -->
-      <i v-else class="material-icons">search</i>
+      <i v-else class="material-symbols">search</i>
       <!-- Input field for search -->
       <input id="search-input" type="text"
         @keyup.exact="keyup" @input="submit" ref="input" :autofocus="active" v-model.trim="value"
@@ -73,7 +73,7 @@
         <!-- Message when no results are found -->
         <div class="searchPrompt" v-show="isEmpty && !isRunning">
           <p>{{ noneMessage }}</p>
-          <i class="no-select material-symbols-outlined tooltip-info-icon" @mouseenter="showHelpTooltip"
+          <i class="material-symbols-outlined tooltip-info-icon" @mouseenter="showHelpTooltip"
             @mouseleave="hideTooltip">
             help
           </i>
@@ -380,9 +380,6 @@ export default {
       const path = url.removeLeadingSlash(url.removeTrailingSlash(s.path));
       const fullPath = context + '/' + path;
       return url.buildItemUrl(source, fullPath, true);
-    },
-    getIcon(mimetype) {
-      return getMaterialIconForType(mimetype);
     },
     enableOptions() {
       this.hiddenOptions = false;
@@ -694,12 +691,12 @@ export default {
   width: 100%;
 }
 
-.search-input-container .material-icons {
+.search-input-container .material-symbols {
   font-size: 1.25em;
   color: rgba(255, 255, 255, 0.7);
 }
 
-#search.active .search-input-container .material-icons {
+#search.active .search-input-container .material-symbols {
   color: inherit;
 }
 

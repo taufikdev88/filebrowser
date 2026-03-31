@@ -10,7 +10,7 @@
       :aria-label="$t('files.sortByName')"
     >
       <span>{{ $t("general.name") }}</span>
-      <i v-if="nameSorted" class="material-icons">{{ nameIcon }}</i>
+      <i v-if="nameSorted" class="material-symbols">{{ nameIcon }}</i>
     </p>
 
     <p
