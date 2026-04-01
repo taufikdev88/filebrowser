@@ -171,9 +171,11 @@ func StartHttp(ctx context.Context, storage *bolt.BoltStore, shutdownComplete ch
 	api.HandleFunc("GET /tools/fileWatcher/sse", withUser(fileWatchSSEHandler))
 
 	// ========================================
-	// Media Routes - /api/media/
+	// Media Routes - /api/media/ (with public routes)
 	// ========================================
 	api.HandleFunc("GET /media/subtitles", withUser(subtitlesHandler))
+	api.HandleFunc("GET /media/metadata", withUser(metadataHandler))
+	publicApi.HandleFunc("GET /media/metadata", withHashFile(publicMetadataHandler))
 
 	// ========================================
 	// OnlyOffice Routes - /api/office/ (with public routes)
