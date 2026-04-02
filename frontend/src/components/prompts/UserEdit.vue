@@ -94,12 +94,11 @@
       <div v-if="stateUser.permissions.admin">
         <label for="loginMethod">{{ $t("settings.loginMethodDescription") }}</label>
         <select v-model="user.loginMethod" class="input" id="loginMethod">
-          <option v-if="globalVars.passwordAvailable" value="password">{{ $t("settings.loginMethods.password") }}
-          </option> <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
-          <option v-if="globalVars.oidcAvailable" value="oidc">{{ $t("settings.loginMethods.oidc") }}</option>
-          <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
-          <option v-if="globalVars.proxyAvailable" value="proxy">{{ $t("settings.loginMethods.proxy") }}</option>
-          <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
+          <option v-if="globalVars.passwordAvailable" value="password">{{ $t("settings.loginMethods.password") }}</option> <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
+          <option v-if="globalVars.oidcAvailable" value="oidc">OIDC</option> <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
+          <option v-if="globalVars.proxyAvailable" value="proxy">Proxy</option> <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
+          <option v-if="globalVars.ldapAvailable" value="ldap">LDAP</option> <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
+          <option value="jwt">JWT</option> <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
         </select>
       </div>
       <permissions v-if="stateUser.permissions.admin" :permissions="user.permissions" />
@@ -213,6 +212,7 @@ export default {
       if (this.globalVars.passwordAvailable) return "password";
       if (this.globalVars.oidcAvailable) return "oidc";
       if (this.globalVars.proxyAvailable) return "proxy";
+      if (this.globalVars.ldapAvailable) return "ldap";
       return "password"; // fallback
     },
   },
@@ -251,6 +251,8 @@ export default {
           if (this.globalVars.passwordAvailable) validMethods.push("password");
           if (this.globalVars.oidcAvailable) validMethods.push("oidc");
           if (this.globalVars.proxyAvailable) validMethods.push("proxy");
+          if (this.globalVars.ldapAvailable) validMethods.push("ldap");
+          if (this.globalVars.jwtAvailable) validMethods.push("jwt");
 
           if (!this.user.loginMethod || !validMethods.includes(this.user.loginMethod)) {
             this.user.loginMethod = this.firstAvailableLoginMethod;
@@ -282,6 +284,8 @@ export default {
           if (this.globalVars.passwordAvailable) validMethods.push("password");
           if (this.globalVars.oidcAvailable) validMethods.push("oidc");
           if (this.globalVars.proxyAvailable) validMethods.push("proxy");
+          if (this.globalVars.ldapAvailable) validMethods.push("ldap");
+          if (this.globalVars.jwtAvailable) validMethods.push("jwt");
 
           if (!this.user.loginMethod || !validMethods.includes(this.user.loginMethod)) {
             this.user.loginMethod = this.firstAvailableLoginMethod;
@@ -470,6 +474,8 @@ export default {
       if (this.globalVars.passwordAvailable) validMethods.push("password");
       if (this.globalVars.oidcAvailable) validMethods.push("oidc");
       if (this.globalVars.proxyAvailable) validMethods.push("proxy");
+      if (this.globalVars.ldapAvailable) validMethods.push("ldap");
+      if (this.globalVars.jwtAvailable) validMethods.push("jwt");
 
       const isValidMethod = validMethods.includes(this.user.loginMethod);
 
