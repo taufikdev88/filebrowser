@@ -79,6 +79,7 @@ import { state, getters, mutations } from "@/store";
 import { isRawImageMimeType } from "@/utils/mimetype";
 import { convertToVTT, getSubtitleFormatExtension } from "@/utils/subtitles";
 import { globalVars } from "@/utils/constants";
+import { replaceRouteForPlaybackQueueStep } from "@/utils/previewPlaybackQueueNav.js";
 
 export default {
   name: "preview",
@@ -532,12 +533,34 @@ export default {
       downloadFiles(items);
     },
     navigatePrevious() {
+      if (getters.isPreviewPlaybackQueueNavMode()) {
+        if (!getters.playbackQueueCanGoPrevious()) {
+          return;
+        }
+        mutations.setNavigationTransitioning(true);
+        if (!replaceRouteForPlaybackQueueStep(this.$router, -1)) {
+          mutations.setNavigationTransitioning(false);
+        }
+        return;
+      }
       if (state.navigation.previousLink) {
+        mutations.setNavigationTransitioning(true);
         this.$router.replace({ path: state.navigation.previousLink });
       }
     },
     navigateNext() {
+      if (getters.isPreviewPlaybackQueueNavMode()) {
+        if (!getters.playbackQueueCanGoNext()) {
+          return;
+        }
+        mutations.setNavigationTransitioning(true);
+        if (!replaceRouteForPlaybackQueueStep(this.$router, 1)) {
+          mutations.setNavigationTransitioning(false);
+        }
+        return;
+      }
       if (state.navigation.nextLink) {
+        mutations.setNavigationTransitioning(true);
         this.$router.replace({ path: state.navigation.nextLink });
       }
     },

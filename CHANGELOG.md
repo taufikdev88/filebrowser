@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file. For commit 
 
 ## v1.3.3
 
+ **BugFixes**:
+ - Swiping media files doesn't respect Playback Queue (#2243)
+ - Audio metadata and album thumbnails doesn't work (#2236)
+
+## v1.3.3
+
  **New Features**:
  - Copy/paste files and folders (`CTRL+C`/`CTRL+V`) from other apps (win explorer, thunar, finder, etc) to upload them directly (#2197)
  - Caption font size can be adjusted in video settings
