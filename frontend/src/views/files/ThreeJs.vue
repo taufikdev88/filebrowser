@@ -5,10 +5,10 @@
     </div>
     <div v-if="error" class="error-overlay">
       <div v-if="isThumbnail" class="error-icon">
-        <i class="material-icons">view_in_ar</i>
+        <i class="material-symbols">view_in_ar</i>
       </div>
       <div v-else class="error-content">
-        <i class="material-icons">error_outline</i>
+        <i class="material-symbols-outlined">error</i>
         <h3>{{ $t("threejs.failedToLoad") }}</h3>
         <p>{{ error }}</p>
       </div>
@@ -22,7 +22,7 @@
         :title="$t('threejs.controls')"
         :aria-label="$t('threejs.controls')"
       >
-        <i class="material-icons">settings</i>
+        <i class="material-symbols">settings</i>
       </button>
     </div>
   </div>
@@ -35,6 +35,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
 import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
@@ -58,6 +59,7 @@ const LOADERS = {
   gltf: GLTFLoader,
   glb: GLTFLoader,
   obj: OBJLoader,
+  fbx: FBXLoader,
   stl: STLLoader,
   ply: PLYLoader,
   dae: ColladaLoader,
@@ -341,6 +343,9 @@ export default {
     },
 
     resolveTextureUrl(url) {
+      if (url.startsWith('blob:') || url.startsWith('data:')) {
+        return url;
+      }
       if (url.includes('/api/resources/download?')) {
         return url;
       }

@@ -16,6 +16,8 @@
     "lint:fix": "eslint --fix --ext .js,.vue,.ts src/",
     "i18n:sync": "node ./scripts/sync-translations.js",
     "i18n:check": "node ./scripts/sync-translations.js --check",
+    "i18n:enforce-order": "node scripts/sync-translations.js --enforce-order",
+    "i18n:cleanup": "node scripts/sync-translations.js --cleanup",
     "format": "prettier --write .",
     "test": "vitest run "
   },
@@ -57,6 +59,7 @@
     "eslint-plugin-vue": "^9.24.0",
     "fs-extra": "^11.3.0",
     "jsdom": "^25.0.1",
+    "typescript": "^6.0.0",
     "vite": "^6.2.0",
     "vite-plugin-checker": "^0.10.3",
     "vite-plugin-compression2": "^1.0.0",

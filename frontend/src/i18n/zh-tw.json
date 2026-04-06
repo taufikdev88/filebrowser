@@ -240,7 +240,8 @@
     "unarchive": "解壓縮封存檔",
     "unarchiveMessage": "選擇解壓縮封存檔的位置。",
     "unarchiveDestination": "解壓縮至：",
-    "unarchiveSuccess": "封存檔解壓縮成功！"
+    "unarchiveSuccess": "封存檔解壓縮成功！",
+    "downloadFailed": "分塊下載失敗 - 如果此情況重複發生，請嘗試減少分塊大小：{message}"
   },
   "search": {
     "smallerThan": "小於：",
@@ -343,9 +344,7 @@
     "brandingHelp": "可透過變更名稱、更換標誌、新增自訂樣式，甚至停用 GitHub 外部連結，來自訂 File Browser 執行個體的外觀與風格。\n如需更多品牌化設定資訊，請參閱 {0}。",
     "commandRunnerHelp": "可在這裡設定於命名事件中執行的指令，每行一個。環境變數 {0} 與 {1} 可供使用，其中 {0} 是相對於 {1} 的路徑。如需瞭解此功能與可用環境變數的更多資訊，請參閱 {2}。",
     "loginMethods": {
-      "password": "密碼",
-      "oidc": "OIDC",
-      "proxy": "代理"
+      "password": "密碼"
     },
     "newUserHintSubFolder": "例如：'/subfolder'，留空即為預設值",
     "permissionsHelp": "使用者權限決定可以執行哪些類型的操作。管理員權限可完整管理所有使用者設定，以及許多系統設定。",
@@ -784,7 +783,10 @@
     "saveAbortedMessage": "儲存作業已中止。應用程式目前的作用中檔案 ({activeFile}) 與要儲存的檔案 ({tryingToSave}) 不一致。",
     "syncFailed": "嘗試 5 次後，仍無法將「{filename}」的狀態與路由同步。為避免資料毀損，已中止編輯器初始化。",
     "fileSaved": "檔案已儲存！",
-    "errorSavingFile": "儲存檔案出錯：{error}"
+    "errorSavingFile": "儲存檔案出錯：{error}",
+    "lines": "{count} 行",
+    "words": "{count} 詞",
+    "chars": "{count} 字元"
   },
   "player": {
     "LoopEnabled": "循環已啟用",

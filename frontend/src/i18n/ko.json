@@ -240,7 +240,8 @@
     "unarchive": "아카이브 추출",
     "unarchiveMessage": "아카이브를 추출할 위치를 선택합니다.",
     "unarchiveDestination": "추출 대상:",
-    "unarchiveSuccess": "아카이브가 성공적으로 추출되었습니다!"
+    "unarchiveSuccess": "아카이브가 성공적으로 추출되었습니다!",
+    "downloadFailed": "청크 다운로드에 실패했습니다 - 이 문제가 반복되면 청크 크기를 줄여 보세요: {message}"
   },
   "search": {
     "smallerThan": "보다 작습니다:",
@@ -343,9 +344,7 @@
     "brandingHelp": "파일 브라우저 인스턴스의 이름을 변경하고, 로고를 바꾸고, 사용자 지정 스타일을 추가하고, GitHub에 대한 외부 링크를 비활성화하여 모양과 느낌을 사용자 지정할 수 있습니다.\n사용자 지정 브랜딩에 대한 자세한 내용은 {0} 을 참조하세요.",
     "commandRunnerHelp": "여기에서 명명된 이벤트에서 실행되는 명령을 설정할 수 있습니다. 한 줄에 하나씩 작성해야 합니다. 환경 변수 {0} 및 {1} 을 사용할 수 있으며, {0} 은 {1} 에 상대적입니다. 이 기능 및 사용 가능한 환경 변수에 대한 자세한 내용은 {2} 을 참조하세요.",
     "loginMethods": {
-      "password": "비밀번호",
-      "oidc": "OIDC",
-      "proxy": "프록시"
+      "password": "비밀번호"
     },
     "newUserHintSubFolder": "예: '/subfolder' - 기본값은 비어 있습니다.",
     "permissionsHelp": "사용자 권한은 사용자가 수행할 수 있는 작업 유형에 대한 액세스를 제어합니다. 관리자 권한은 모든 사용자 설정은 물론 여러 시스템 설정을 업데이트하고 변경할 수 있는 모든 권한을 부여합니다.",
@@ -784,7 +783,10 @@
     "saveAbortedMessage": "저장 작업이 중단되었습니다. 애플리케이션의 활성 파일({activeFile})이 저장하려는 파일({tryingToSave})과 일치하지 않습니다.",
     "syncFailed": "5번 시도 후 \"{filename}\"의 경로와 상태를 동기화하지 못했습니다. 데이터 손상을 방지하기 위해 편집기 설정을 중단합니다.",
     "fileSaved": "파일이 저장되었습니다!",
-    "errorSavingFile": "파일 저장 중 오류가 발생했습니다: {error}"
+    "errorSavingFile": "파일 저장 중 오류가 발생했습니다: {error}",
+    "lines": "{count} 줄",
+    "words": "{count} 단어",
+    "chars": "{count} 문자"
   },
   "player": {
     "LoopEnabled": "반복 활성화",

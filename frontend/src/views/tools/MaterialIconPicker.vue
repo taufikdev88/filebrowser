@@ -5,7 +5,7 @@
 
       <!-- External Link Banner -->
       <a class="button" href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer">
-        <i class="material-icons">open_in_new</i>
+        <i class="material-symbols">open_in_new</i>
         <span>{{ $t('tools.materialIconPicker.browseFullLibrary') }}</span>
       </a>
     </div>
@@ -13,11 +13,11 @@
     <!-- Search Controls -->
     <div class="controls">
       <div class="search-box">
-        <i class="material-icons search-icon">search</i>
+        <i class="material-symbols search-icon">search</i>
         <input v-model="searchQuery" type="text" :placeholder="$t('tools.materialIconPicker.searchPlaceholder')"
           class="input" style="padding-left: 2.5em;" />
         <button v-if="searchQuery" @click="searchQuery = ''" class="button button--flat clear-button">
-          <i class="material-icons">close</i>
+          <i class="material-symbols">close</i>
         </button>
       </div>
     </div>
@@ -28,7 +28,7 @@
         {{ $t('tools.materialIconPicker.showingResults', { count: visibleIcons.length }) }}
       </span>
       <span v-else>
-        {{ $t('tools.materialIconPicker.popularIcons', { count: allMaterialIcons.length }) }}
+        {{ $t('tools.materialIconPicker.popularIcons', { count: materialSymbols.length }) }}
       </span>
     </div>
 
@@ -56,7 +56,7 @@
 
     <!-- Empty State -->
     <div v-if="!showCustomPreview && visibleIcons.length === 0" class="empty-state">
-      <i class="material-icons">search_off</i>
+      <i class="material-symbols">search_off</i>
       <p>{{ $t('tools.materialIconPicker.noResults') }}</p>
       <p class="empty-hint">{{ $t('tools.materialIconPicker.tryDifferentSearch') }}</p>
     </div>
@@ -65,10 +65,7 @@
 </template>
 
 <script>
-import {
-  allMaterialIcons,
-  getIconClass,
-} from "@/utils/material-icons";
+import { materialSymbols, getIconClass } from "@/utils/material-symbols";
 import { notify } from "@/notify";
 
 export default {
@@ -82,9 +79,9 @@ export default {
     document.title = globalVars.name + " - " + this.$t('tools.title') + " - " + this.$t('tools.materialIconPicker.name');
   },
   computed: {
-    allMaterialIcons() {
+    materialSymbols() {
       // Return the icon list as a computed property to avoid reactivity issues
-      return allMaterialIcons;
+      return materialSymbols;
     },
     searchQueryKey() {
       // Create a unique key based on search query to force re-render when search changes
@@ -94,12 +91,12 @@ export default {
       // Apply search filter - always return a new array to avoid caching issues
       const query = this.searchQuery.trim().toLowerCase();
       if (!query) {
-        return [...this.allMaterialIcons];
+        return [...this.materialSymbols];
       }
 
       // Create a fresh filtered array
       const filtered = [];
-      for (const icon of this.allMaterialIcons) {
+      for (const icon of this.materialSymbols) {
         if (icon.toLowerCase().includes(query)) {
           filtered.push(icon);
         }
@@ -114,7 +111,7 @@ export default {
       if (!trimmed) return false;
 
       // Check if it's an exact match
-      const exactMatch = this.allMaterialIcons.some(
+      const exactMatch = this.materialSymbols.some(
         (icon) => icon.toLowerCase() === trimmed.toLowerCase()
       );
 
@@ -273,7 +270,7 @@ a.button {
   color: var(--textSecondary);
 }
 
-.empty-state .material-icons {
+.empty-state .material-symbols {
   font-size: 4em;
   margin-bottom: 0.5em;
   opacity: 0.5;

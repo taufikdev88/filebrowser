@@ -10,7 +10,7 @@
       :aria-label="$t('files.sortByName')"
     >
       <span>{{ $t("general.name") }}</span>
-      <i v-if="nameSorted" class="material-icons">{{ nameIcon }}</i>
+      <i v-if="nameSorted" class="material-symbols">{{ nameIcon }}</i>
     </p>
 
     <p
@@ -22,8 +22,8 @@
       :title="$t('files.sortBySize')"
       :aria-label="$t('files.sortBySize')"
     >
+      <i v-if="sizeSorted" class="material-symbols">{{ sizeIcon }}</i>
       <span>{{ $t("general.size") }}</span>
-      <i v-if="sizeSorted" class="material-icons">{{ sizeIcon }}</i>
     </p>
 
     <p
@@ -35,8 +35,8 @@
       :title="$t('files.sortByLastModified')"
       :aria-label="$t('files.sortByLastModified')"
     >
+      <i v-if="modifiedSorted" class="material-symbols">{{ modifiedIcon }}</i>
       <span>{{ $t("files.lastModified") }}</span>
-      <i v-if="modifiedSorted" class="material-icons">{{ modifiedIcon }}</i>
     </p>
 
     <p
@@ -49,8 +49,8 @@
       :title="$t('files.sortByDuration')"
       :aria-label="$t('files.sortByDuration')"
     >
+      <i v-if="durationSorted" class="material-symbols">{{ durationIcon }}</i>
       <span>{{ $t("files.duration") }}</span>
-      <i v-if="durationSorted" class="material-icons">{{ durationIcon }}</i>
     </p>
     <span v-if="quickDownloadEnabled" class="placeholder"></span>
   </div>
@@ -188,10 +188,14 @@ span {
   flex: 1;
 }
 
-.desktop-view .size,
-.desktop-view .modified,
-.desktop-view .duration {
+.desktop-view .modified{
   min-width: 15%;
+  flex: 0;
+}
+
+.desktop-view .size,
+.desktop-view .duration {
+  min-width: 10%;
   flex: 0;
 }
 
@@ -199,7 +203,8 @@ span {
 .modified,
 .duration {
   flex: 1;
-  padding-left: 1em;
+  justify-content: flex-end;
+  text-align: end;
 }
 
 

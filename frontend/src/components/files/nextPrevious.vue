@@ -31,7 +31,7 @@
       hidden: !showNav,
       disabled: !hasPrevious,
       dragging: dragState.type === 'previous',
-      active: dragState.atFullExtent && dragState.type === 'previous',
+      active: (dragState.atFullExtent && dragState.type === 'previous') || (gestureHint === 'previous' && gestureHintCommitReady),
       'dark-mode': isDarkMode,
       'media-mode': isMediaQueueMode,
       'sidebar-resizing': isSidebarResizing,
@@ -40,7 +40,7 @@
     :aria-label="$t('general.previous')"
     :title="$t('general.previous')"
   >
-    <i class="material-icons">
+    <i class="material-symbols">
       {{ dragState.type === 'previous' && dragState.atFullExtent ? 'list_alt' : 'chevron_left' }} <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
     </i>
   </button>
@@ -56,14 +56,33 @@
     @mouseover="setHoverNav(true)"
     @mouseleave="setHoverNav(false)"
     class="nav-button nav-next"
-    :class="{ hidden: !showNav, dragging: dragState.type === 'next', active: dragState.atFullExtent && dragState.type === 'next','dark-mode': isDarkMode, 'media-mode': isMediaQueueMode}"
+    :class="{ hidden: !showNav, dragging: dragState.type === 'next', active: (dragState.atFullExtent && dragState.type === 'next') || (gestureHint === 'next' && gestureHintCommitReady), 'dark-mode': isDarkMode, 'media-mode': isMediaQueueMode}"
     :style="nextButtonStyle"
     :aria-label="$t('general.next')"
     :title="$t('general.next')"
   >
-    <i class="material-icons">
+    <i class="material-symbols">
       {{ dragState.type === 'next' && dragState.atFullExtent ? 'list_alt' : 'chevron_right' }} <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
     </i>
+  </button>
+
+  <!-- Close preview (same control as swipe-down / back) -->
+  <button
+    v-if="enabled && showPreviewCloseButton"
+    type="button"
+    @click.prevent="handleClosePreviewClick"
+    class="nav-button nav-close"
+    :class="{
+      hidden: !showCloseNavChrome,
+      active: gestureHint === 'close' && gestureHintCommitReady,
+      'dark-mode': isDarkMode,
+      'media-mode': isMediaQueueMode,
+      'gesture-flash': gestureHintFlashClose,
+      'sidebar-resizing': isSidebarResizing,
+    }"
+    :style="closeButtonStyle"
+  >
+    <i class="material-symbols">close</i>
   </button>
 
   <!-- Prefetch links for better performance -->
@@ -96,6 +115,8 @@ export default {
       },
       // State tracking
       navigationTimeout: null,
+      /** Bumps on each setupNavigationForCurrentItem start; stale async completions skip applying. */
+      navigationSetupGeneration: 0,
       isSwipe: false,
       touchStartX: 0,
       touchStartY: 0,
@@ -123,8 +144,46 @@ export default {
       return state.navigation.enabled && getters.currentPrompt() == null;
     },
     showNav() {
-      const shouldShow = state.navigation.show || this.hoverNav;
-      return shouldShow;
+      return state.navigation.show || this.hoverNav || !!state.navigation.gestureHint;
+    },
+    gestureHint() {
+      return state.navigation.gestureHint;
+    },
+    gestureHintCommitReady() {
+      return state.navigation.gestureHintCommitReady;
+    },
+    gestureHintFlashClose() {
+      return state.navigation.gestureHintFlashClose;
+    },
+    showPreviewCloseButton() {
+      return (
+        previewViews.includes(this.currentView) &&
+        state.req &&
+        state.req.type !== 'directory'
+      );
+    },
+    autoShowNavForMediaPreview() {
+      const pt = getters.previewType();
+      return pt === 'image' || pt === 'video';
+    },
+    /** Close mirrors swipe-down dismiss only (not with prev/next on load or edge hover). */
+    showCloseNavChrome() {
+      return (
+        this.enabled &&
+        this.showPreviewCloseButton &&
+        this.gestureHint === 'close'
+      );
+    },
+    /** Centers on the main column when #main has padding-left matching the sticky sidebar (same offset as StatusBar). */
+    closeButtonStyle() {
+      const styles = { right: 'auto' };
+      if (this.moveWithSidebar) {
+        const half = this.sidebarWidth / 2;
+        styles.left = `calc(50% + ${half}em)`;
+      } else {
+        styles.left = '50%';
+      }
+      return styles;
     },
     hasPrevious() {
       if (this.isMediaQueueMode) {
@@ -262,7 +321,9 @@ export default {
     window.addEventListener("touchmove", this.handleDrag, { passive: false });
     window.addEventListener("touchend", this.endDrag);
     document.addEventListener("click", this.handleDocumentClick);
-    window.addEventListener("mousemove", this.handleGlobalMouseMove);
+    // Capture phase: run before preview gesture handlers (document-level capture mousemove)
+    // that may stopPropagation, which would skip bubble-phase window listeners.
+    window.addEventListener("mousemove", this.handleGlobalMouseMove, true);
 
     // Calculate 10em threshold in pixels
     const emSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -288,7 +349,7 @@ export default {
     window.removeEventListener("touchmove", this.handleDrag);
     window.removeEventListener("touchend", this.endDrag);
     document.removeEventListener("click", this.handleDocumentClick);
-    window.removeEventListener("mousemove", this.handleGlobalMouseMove);
+    window.removeEventListener("mousemove", this.handleGlobalMouseMove, true);
 
     // Clear our local timeout
     if (this.navigationTimeout) {
@@ -350,8 +411,12 @@ export default {
       });
     },
     async setupNavigationForCurrentItem() {
+      const gen = ++this.navigationSetupGeneration;
+
       if (!this.enabled || !state.req || state.req.type === 'directory') {
-        // Clear navigation when not applicable
+        if (gen !== this.navigationSetupGeneration) {
+          return;
+        }
         mutations.clearNavigation();
         return;
       }
@@ -366,7 +431,9 @@ export default {
       // Special case: if we're viewing a shared single file (where the share itself is the file)
       // and directoryPath equals req.path, there's no directory to navigate within
       if (getters.isShare() && directoryPath === state.req.path) {
-        // This is a single file share with no siblings to navigate to
+        if (gen !== this.navigationSetupGeneration) {
+          return;
+        }
         mutations.clearNavigation();
         return;
       }
@@ -390,17 +457,23 @@ export default {
           }
           listing = res.items;
         } catch (error) {
-          // If we can't fetch the directory listing, navigation isn't possible
+          if (gen !== this.navigationSetupGeneration) {
+            return;
+          }
           mutations.clearNavigation();
           return;
         }
       } else {
-        // This is a file at root where directoryPath === req.path
-        // This shouldn't normally happen for non-share cases, but handle gracefully
+        if (gen !== this.navigationSetupGeneration) {
+          return;
+        }
         mutations.clearNavigation();
         return;
       }
 
+      if (gen !== this.navigationSetupGeneration) {
+        return;
+      }
       mutations.setupNavigation({
         listing: listing,
         currentItem: state.req,
@@ -409,10 +482,10 @@ export default {
     },
     showInitialNavigation() {
       // Show navigation initially for 3 seconds when navigation is set up
-      if (this.enabled && (this.hasPrevious || this.hasNext)) {
+      if (this.enabled && (this.hasPrevious || this.hasNext || this.autoShowNavForMediaPreview)) {
         mutations.setNavigationShow(true);
 
-        // Clear any existing timeout
+        mutations.clearNavigationTimeout();
         if (this.navigationTimeout) {
           clearTimeout(this.navigationTimeout);
           this.navigationTimeout = null;
@@ -424,7 +497,26 @@ export default {
           }
           this.navigationTimeout = null;
         }, 3000);
+        mutations.setNavigationTimeout(this.navigationTimeout);
       }
+    },
+    async handleClosePreviewClick() {
+      if (!(await this.checkForUnsavedChanges())) {
+        return;
+      }
+      mutations.closeHovers();
+      this.hoverNav = false;
+      mutations.setNavigationGestureHint({});
+      if (state.previousHistoryItem?.name) {
+        url.goToItem(
+          state.previousHistoryItem.source,
+          state.previousHistoryItem.path,
+          state.previousHistoryItem,
+        );
+        return;
+      }
+      const parentPath = url.removeLastDir(state.route.path);
+      this.$router.push({ path: parentPath });
     },
     async prev() {
       if (this.hasPrevious) {
@@ -824,6 +916,7 @@ export default {
     },
 
     cancelNavigationTimeout() {
+      mutations.clearNavigationTimeout();
       if (this.navigationTimeout) {
         clearTimeout(this.navigationTimeout);
         this.navigationTimeout = null;
@@ -1095,8 +1188,59 @@ export default {
 }
 
 /* Smooth show animation for better UX */
-.nav-button:not(.hidden):not(.sidebar-resizing) {
+.nav-button:not(.hidden):not(.sidebar-resizing):not(.nav-close) {
   animation: nav-button-show 0.4s ease-out;
+}
+
+.nav-button.nav-close {
+  /* Below header; +4em vs previous placement; horizontal position from closeButtonStyle when sidebar offsets main */
+  top: calc(1.25em + 4em);
+  right: auto;
+  margin-top: 0;
+  transform: translateX(-50%);
+}
+
+.nav-button.nav-close.hidden {
+  transform: translateX(-50%) scale(0.9);
+}
+
+.nav-button.nav-close:not(.hidden):not(.sidebar-resizing) {
+  animation: nav-button-show-close 0.4s ease-out;
+}
+
+@keyframes nav-button-show-close {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.nav-button.nav-close:hover:not(.hidden),
+.nav-button.nav-close.active:not(.hidden) {
+  transform: translateX(-50%) scale(1.1);
+}
+
+.nav-button.nav-close.gesture-flash:not(.hidden) {
+  animation: nav-close-gesture-flash 0.38s ease-out;
+}
+
+@keyframes nav-close-gesture-flash {
+  0% {
+    transform: translateX(-50%) scale(1);
+    filter: brightness(1);
+  }
+  40% {
+    transform: translateX(-50%) scale(1.12);
+    filter: brightness(1.08);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    filter: brightness(1);
+  }
 }
 
 @keyframes nav-button-show {
@@ -1116,14 +1260,14 @@ export default {
   transition: none !important; /* Disable transitions during drag */
 }
 
-.nav-button i.material-icons {
+.nav-button i.material-symbols {
   font-size: 24px;
   line-height: 1;
   transition: transform 0.2s ease;
 }
 
-.nav-button:hover i.material-icons,
-.nav-button.active i.material-icons {
+.nav-button:hover i.material-symbols,
+.nav-button.active i.material-symbols {
   transform: scale(1.1);
 }
 
@@ -1134,7 +1278,7 @@ export default {
     height: 44px;
   }
 
-  .nav-button i.material-icons {
+  .nav-button i.material-symbols {
     font-size: 20px;
   }
 

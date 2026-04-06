@@ -10,37 +10,40 @@
       'transitioning': isTransitioning
     }" v-if="!isDeleted">
       <ExtendedImage v-if="showImage && !isTransitioning" :src="raw" @navigate-previous="navigatePrevious"
-        @navigate-next="navigateNext" />
+        @navigate-next="navigateNext" @close-preview="exitPreviewFromImageGesture" />
 
       <!-- Media Player Component -->
       <plyrViewer v-else-if="previewType == 'audio' || previewType == 'video'" ref="plyrViewer"
         :previewType="previewType" :raw="raw" :subtitlesList="subtitlesList" :req="req" :listing="listing"
         :useDefaultMediaPlayer="useDefaultMediaPlayer" :autoPlayEnabled="autoPlay" @play="autoPlay = true"
-        :class="{ 'plyr-background': previewType == 'audio' && !useDefaultMediaPlayer }" />
+        :class="{ 'plyr-background': previewType == 'audio' && !useDefaultMediaPlayer }"
+        @navigate-previous="navigatePrevious"
+        @navigate-next="navigateNext"
+        @close-preview="exitPreviewFromImageGesture" />
 
       <div v-else-if="previewType == 'pdf'" class="pdf-wrapper">
         <iframe class="pdf" :src="raw"></iframe>
         <a v-if="isMobileSafari" :href="raw" target="_blank" class="button button--flat floating-btn">
           <div>
-            <i class="material-icons">open_in_new</i>{{ $t("general.openFile") }}
+            <i class="material-symbols">open_in_new</i>{{ $t("general.openFile") }}
           </div>
         </a>
       </div>
 
       <div v-else class="info">
         <div class="title">
-          <i class="material-icons">feedback</i>
+          <i class="material-symbols">feedback</i>
           {{ $t("files.noPreview") }}
         </div>
         <div class="preview-buttons" v-if="permissions.download">
           <a target="_blank" :href="downloadUrl" class="button button--flat">
             <div>
-              <i class="material-icons">file_download</i>{{ $t("general.download") }}
+              <i class="material-symbols">file_download</i>{{ $t("general.download") }}
             </div>
           </a>
           <a target="_blank" :href="raw" class="button button--flat" v-if="req.type != 'directory'">
             <div>
-              <i class="material-icons">open_in_new</i>{{ $t("general.openFile") }}
+              <i class="material-symbols">open_in_new</i>{{ $t("general.openFile") }}
             </div>
           </a>
         </div>
@@ -59,9 +62,8 @@ import ExtendedImage from "@/components/files/ExtendedImage.vue";
 import plyrViewer from "@/views/files/plyrViewer.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { state, getters, mutations } from "@/store";
-import { getFileExtension } from "@/utils/files";
 import { isRawImageMimeType } from "@/utils/mimetype";
-import { convertToVTT } from "@/utils/subtitles";
+import { convertToVTT, getSubtitleFormatExtension } from "@/utils/subtitles";
 import { globalVars } from "@/utils/constants";
 
 export default {
@@ -223,7 +225,8 @@ export default {
   },
   watch: {
     async req() {
-      if (!getters.isLoggedIn()) {
+      // Public shares are not "logged in"; still reload preview data when state.req updates (e.g. media metadata patch).
+      if (!getters.isLoggedIn() && !getters.isShare()) {
         return;
       }
 
@@ -293,7 +296,7 @@ export default {
           // Convert to VTT if needed
           let vttContent = content;
           if (!content.startsWith("WEBVTT")) {
-            const ext = getFileExtension(subtitleTrack.name);
+            const ext = getSubtitleFormatExtension(subtitleTrack.name);
             vttContent = convertToVTT(ext, content);
           }
           if (vttContent.startsWith("WEBVTT")) {
@@ -301,10 +304,12 @@ export default {
             const blob = new Blob([vttContent], { type: "text/vtt" });
             const vttURL = URL.createObjectURL(blob);
 
+            const lang = (subtitleTrack.language ?? '').trim();
             subs.push({
               name: subtitleTrack.name,
               src: vttURL,
-              language: subtitleTrack.language
+              // Empty srclang breaks Plyr language matching; use 'und' (undetermined) per BCP 47.
+              language: lang || 'und',
             });
           } else {
             console.warn(
@@ -454,6 +459,20 @@ export default {
       if (state.navigation.nextLink) {
         this.$router.replace({ path: state.navigation.nextLink });
       }
+    },
+    /** Same navigation as header “back” in preview (Default.vue performNavigation). */
+    exitPreviewFromImageGesture() {
+      mutations.closeHovers();
+      if (state.previousHistoryItem?.name) {
+        url.goToItem(
+          state.previousHistoryItem.source,
+          state.previousHistoryItem.path,
+          state.previousHistoryItem,
+        );
+        return;
+      }
+      const parentPath = url.removeLastDir(state.route.path);
+      this.$router.push({ path: parentPath });
     },
   },
 };

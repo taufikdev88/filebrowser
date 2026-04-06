@@ -47,6 +47,31 @@ export async function getItems(source, path, only = "") {
   }
 }
 
+/**
+ * Registers a graceful pause for the active chunked upload at this path.
+ * Call immediately before aborting the chunk XHR so the server keeps partial data.
+ */
+export async function signalUploadPause(source, path, shareHash = null) {
+  if (shareHash) {
+    const apiPath = getPublicApiPath('resources/pause', {
+      hash: shareHash,
+      path: path,
+    })
+    const headers = {}
+    const sharePassword = localStorage.getItem('sharepass:' + shareHash)
+    if (sharePassword) {
+      headers['X-SHARE-PASSWORD'] = sharePassword
+    }
+    await fetchURL(apiPath, { method: 'POST', headers })
+    return
+  }
+  if (!source || source === undefined || source === null) {
+    throw new Error('no source provided')
+  }
+  const apiPath = getApiPath('resources/pause', { path, source })
+  await fetchURL(apiPath, { method: 'POST' })
+}
+
 async function resourceAction(source, path, method, content) {
   if (!source || source === undefined || source === null) {
     throw new Error('no source provided')
@@ -194,6 +219,19 @@ export async function download(format, files, shareHash = "") {
   }, 100)
 }
 
+/** Best-effort text from a failed download response (consumes body). */
+async function readDownloadErrorBody(response) {
+  try {
+    const text = await response.text()
+    if (text && text.length > 0) {
+      return text.length > 300 ? `${text.slice(0, 300)}…` : text
+    }
+  } catch {
+    // ignore
+  }
+  return ''
+}
+
 async function downloadChunked(file, shareHash = "") {
   const chunkSizeMb = state.user?.fileLoading?.downloadChunkSizeMb || 0
 
@@ -259,7 +297,18 @@ async function downloadChunked(file, shareHash = "") {
       })
 
       if (!response.ok && response.status !== 206) {
-        throw new Error(`Failed to download chunk: ${response.statusText}`)
+        const body = (await readDownloadErrorBody(response)).trim()
+        const fromHttp =
+          body ||
+          [response.statusText, `HTTP ${response.status}`].filter(Boolean).join(" ").trim()
+        throw new Error(fromHttp || "Request failed")
+      }
+
+      if (!response.body) {
+        throw new Error(
+          [response.statusText, `HTTP ${response.status}`].filter(Boolean).join(" ").trim() ||
+            "No response body"
+        )
       }
 
       // Track progress within the chunk using ReadableStream
@@ -301,6 +350,10 @@ async function downloadChunked(file, shareHash = "") {
           return; // Silently handle cancellation
         }
         throw readError; // Re-throw other errors
+      }
+
+      if (chunkLoaded < expectedChunkSize) {
+        throw new Error("Connection closed before the full chunk was received")
       }
 
       // Combine chunk parts into single ArrayBuffer
@@ -355,8 +408,9 @@ async function downloadChunked(file, shareHash = "") {
       // Don't throw error or show notification for user-initiated cancellation
       return;
     }
-    downloadManager.setError(downloadId, error.message || 'Download failed')
-    notify.showError(`Chunked download failed: ${error.message}`)
+    const message =
+      error instanceof Error ? error.message || "Unknown error" : String(error)
+    downloadManager.setError(downloadId, message)
     throw error
   }
 }

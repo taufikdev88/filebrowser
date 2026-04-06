@@ -1,7 +1,7 @@
 import * as i18n from "@/i18n";
 import { state } from "./state.js";
 import { getters } from "./getters.js";
-import { emitStateChanged } from './eventBus'; // Import the function from eventBus.js
+import { emitStateChanged } from './eventBus';
 import { usersApi } from "@/api";
 import { notify } from "@/notify";
 import { sortedItems } from "@/utils/sort.js";
@@ -48,6 +48,17 @@ export const mutations = {
   },
   setEditorSaveHandler: (handler) => {
     state.editorSaveHandler = handler;
+    emitStateChanged();
+  },
+  setEditorStats: (stats) => {
+    if (JSON.stringify(state.editorStats) === JSON.stringify(stats)) return;
+    state.editorStats = stats;
+    emitStateChanged();
+  },
+  setEditorFontSize: (size) => {
+    if (state.editorFontSize === size) return;
+    state.editorFontSize = size;
+    localStorage.setItem('editorFontSize', size);
     emitStateChanged();
   },
   setDeletedItem: (value) => {
@@ -560,6 +571,47 @@ export const mutations = {
     state.req = value;
     emitStateChanged();
   },
+  /** Merge media metadata into current directory listing (state.req.items) by file name. */
+  patchRequestMetadata: (metadataItems) => {
+    if (!state.req?.items || !metadataItems?.length) {
+      return;
+    }
+    const byName = new Map();
+    for (const e of metadataItems) {
+      if (e.metadata != null) {
+        byName.set(e.name, e.metadata);
+      }
+    }
+    for (const item of state.req.items) {
+      if (byName.has(item.name)) {
+        item.metadata = byName.get(item.name);
+      }
+    }
+    emitStateChanged();
+  },
+  /** Merge media fields from GET /api/media/metadata (single file). Replace req object so Vue watchers see the update. */
+  patchRequestFileMediaMetadata: (enriched) => {
+    if (
+      !state.req ||
+      state.req.type === "directory" ||
+      !enriched ||
+      enriched.type === "directory"
+    ) {
+      return;
+    }
+    const next = { ...state.req };
+    if (enriched.metadata !== undefined) {
+      next.metadata = enriched.metadata;
+    }
+    if (enriched.subtitles !== undefined) {
+      next.subtitles = enriched.subtitles;
+    }
+    if (enriched.hasPreview !== undefined) {
+      next.hasPreview = enriched.hasPreview;
+    }
+    state.req = next;
+    emitStateChanged();
+  },
   clearRequest: () => {
     // Set req to null to prevent API calls with empty paths
     // Components should check for null req before accessing
@@ -578,6 +630,8 @@ export const mutations = {
     if (!state.user.sorting) {
       state.user.sorting = {};
     }
+    state.user.sorting.by = field;
+    state.user.sorting.asc = asc;
     mutations.updateDisplayPreferences({ sorting: { by: field, asc: asc } });
     emitStateChanged();
   },
@@ -666,7 +720,7 @@ export const mutations = {
     }
     const path = state.route.path;
 
-    if (!source || !path) return;
+    if (!source || path == null || path === "") return;
     if (!state.displayPreferences) {
       state.displayPreferences = {};
     }
@@ -688,7 +742,6 @@ export const mutations = {
     }
     allPreferences[state.user.username] = state.displayPreferences;
     localStorage.setItem("displayPreferences", JSON.stringify(allPreferences));
-
     emitStateChanged();
   },
   setNavigationEnabled: (enabled) => {
@@ -702,6 +755,10 @@ export const mutations = {
     emitStateChanged();
   },
   setupNavigation: ({ listing, currentItem, directoryPath }) => {
+    // Cancel any pending auto-hide from a previous setupNavigation; the raw
+    // setTimeout used to leak and could fire setNavigationShow(false) right
+    // after opening a new image (nextPrevious flicker).
+    mutations.clearNavigationTimeout();
     state.navigation.listing = listing;
     state.navigation.currentIndex = -1;
     state.navigation.previousItem = null;
@@ -765,14 +822,15 @@ export const mutations = {
 
     emitStateChanged();
 
-    // Auto-show navigation when it's first set up
+    // Auto-show navigation when it's first set up (timer tracked so new opens clear it)
     if (state.navigation.enabled && (state.navigation.previousLink || state.navigation.nextLink)) {
       mutations.setNavigationShow(true);
-      setTimeout(() => {
+      const hideTimer = setTimeout(() => {
         if (!state.navigation.hoverNav) {
           mutations.setNavigationShow(false);
         }
       }, 3000);
+      mutations.setNavigationTimeout(hideTimer);
     }
   },
   getPrefetchUrl: (item) => {
@@ -803,6 +861,25 @@ export const mutations = {
     state.navigation.hoverNav = hover;
     emitStateChanged();
   },
+  /**
+   * @param {{ kind?: null | 'previous' | 'next' | 'close', commitReady?: boolean, flashClose?: boolean }} [payload]
+   */
+  setNavigationGestureHint: (payload = {}) => {
+    const kind = payload.kind ?? null;
+    const commitReady = !!payload.commitReady;
+    const flashClose = !!payload.flashClose;
+    if (
+      state.navigation.gestureHint === kind &&
+      state.navigation.gestureHintCommitReady === commitReady &&
+      state.navigation.gestureHintFlashClose === flashClose
+    ) {
+      return;
+    }
+    state.navigation.gestureHint = kind;
+    state.navigation.gestureHintCommitReady = commitReady;
+    state.navigation.gestureHintFlashClose = flashClose;
+    emitStateChanged();
+  },
   setNavigationTimeout: (timeout) => {
     if (state.navigation.timeout) {
       clearTimeout(state.navigation.timeout);
@@ -818,6 +895,9 @@ export const mutations = {
   clearNavigation: () => {
     state.navigation.show = false;
     state.navigation.hoverNav = false;
+    state.navigation.gestureHint = null;
+    state.navigation.gestureHintCommitReady = false;
+    state.navigation.gestureHintFlashClose = false;
     state.navigation.listing = null;
     state.navigation.currentIndex = -1;
     state.navigation.previousItem = null;

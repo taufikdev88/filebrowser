@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file. For commit guidelines, please refer to [Standard Version](https://github.com/conventional-changelog/standard-version).
 
+## v1.3.3
+
+ **New Features**:
+ - Copy/paste files and folders (`CTRL+C`/`CTRL+V`) from other apps (win explorer, thunar, finder, etc) to upload them directly (#2197)
+ - Caption font size can be adjusted in video settings
+ - Ability to adjust the startup check method for sql database via `server.startupIntegrityCheck` (#2221)
+ - Status bar for editor and markdown viewer (#2226)
+
+ **Notes**:
+ - `.fbx` 3d model files added to supported previews.
+ - removed upx compression on docker image (#2193)
+ - videos double tap to fast-forward and rewind added.
+ - Adjust Image album swipe behavior (#2068)
+   - swipe animation for next/previous
+   - swipe down on image to close and go to parent folder.
+   - supports videos
+ - chunked uploads will save to a temporary file at the destination and renamed on completion. Better upload pause handling (#2129)
+ - The Icons in the UI were updated! (#2203)
+   - More supported icons in the Icon Picker tool.
+   - More file types have new icons across all the listings (such as `.md`, `.apk`, etc).
+ - `.fbx` 3d model files added to supported previews.
+ - removed upx compression on docker image (#2193)
+ - chunked uploads will save to a temporary file at the destination and renamed on completion. Better upload pause handling (#2129)
+ - deprecated `source.config.CreateUserDir`, now its always `true`. If a user directory doesn't exist it will get created empty.
+ - `CTRL`+`Mouse Wheel` shortcut to change listing size. Also for change font size in editor (#2227)
+
+ **BugFixes**:
+ - Archives don't preserve file metadata (#2063)
+ - Chunked upload setting fails: "0" does not disable chunking as expected (#2202)
+ - Incorrect Chinese labels for Upload controls in Quantum UI (#2191)
+ - Chunked download stops after first chunk, add message explaining (#2074)
+ - Esc to Cancel and Enter to confirm popup (#2079)
+ - Language-tagged subtitle files not detected for videos (#2199)
+ - Unable to use proxy auth since 1.3.0-beta (#2173)
+ - Updating setting on a LDAP user turns the "Login Method" to password. Thus preventing further logins. (#2179)
+
 ## v1.3.2-beta
 
  **Security**:
@@ -31,14 +67,6 @@ All notable changes to this project will be documented in this file. For commit 
  - PUT resource api errors if action against a folder (#2153) 
  - LDAP authentication issue if a password caontains @ symbol (#2154)
  - Share banner seems to be not working for custom urls (#2120)
-
-
- **BugFixes**:
- - [OnlyOffice] Error when saving a file under a user scope #2133
- - Cannot edit shared file in OnlyOffice #2143
- - PWA install button disappeared (#2086)
- - Deleting a root folder was possible #2128
- - PUT resource api errors if action against a folder (#2153) 
 
 ## v1.3.1-beta
 

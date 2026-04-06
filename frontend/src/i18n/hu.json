@@ -240,7 +240,8 @@
     "unarchive": "Kivonat archívum",
     "unarchiveMessage": "Válassza ki, hová szeretné kinyomtatni az archívumot.",
     "unarchiveDestination": "Kivonat a következő címre:",
-    "unarchiveSuccess": "Az archívum sikeresen kinyomtatva!"
+    "unarchiveSuccess": "Az archívum sikeresen kinyomtatva!",
+    "downloadFailed": "A darabos letöltés sikertelen - ha ez ismétlődik, próbálja meg csökkenteni a darabos letöltés méretét: {message}"
   },
   "search": {
     "smallerThan": "Kisebb, mint:",
@@ -343,9 +344,7 @@
     "brandingHelp": "Testreszabhatja a Fájlböngésző példányának megjelenését és érzetét a név megváltoztatásával, a logó cseréjével, egyéni stílusok hozzáadásával és akár a GitHubra mutató külső hivatkozások letiltásával.\nAz egyéni márkaépítéssel kapcsolatos további információkat a {0} oldalon talál.",
     "commandRunnerHelp": "Itt állíthatja be azokat a parancsokat, amelyek a megnevezett események során végrehajtásra kerülnek. Soronként egyet kell írni. A {0} és a {1} környezeti változók lesznek elérhetőek, a {0} a {1}-hoz képest . A funkcióról és a rendelkezésre álló környezeti változókról bővebb információt a {2} oldalon talál.",
     "loginMethods": {
-      "password": "Jelszó",
-      "oidc": "OIDC",
-      "proxy": "Proxy"
+      "password": "Jelszó"
     },
     "newUserHintSubFolder": "pl. '/subfolder' - üres az alapértelmezéshez",
     "permissionsHelp": "A felhasználói engedélyek szabályozzák, hogy a felhasználó milyen típusú műveleteket hajthat végre. A rendszergazdai hozzáférés teljes körű ellenőrzést biztosít bármely felhasználó beállításainak, valamint számos rendszerbeállításnak a frissítéséhez és módosításához.",
@@ -784,7 +783,10 @@
     "saveAbortedMessage": "A mentési művelet megszakadt. Az alkalmazás aktív fájlja ({activeFile}) nem egyezik meg a menteni kívánt fájllal ({tryingToSave}).",
     "syncFailed": "5 próbálkozás után nem sikerült szinkronizálni az állapotot a \"{filename}\" útvonallal. A szerkesztő beállításának megszakítása az adatok sérülésének elkerülése érdekében.",
     "fileSaved": "Fájl mentve!",
-    "errorSavingFile": "Hiba a fájl mentésében: {error}"
+    "errorSavingFile": "Hiba a fájl mentésében: {error}",
+    "lines": "{count} sor",
+    "words": "{count} szó",
+    "chars": "{count} karakter"
   },
   "player": {
     "LoopEnabled": "Hurok engedélyezve",

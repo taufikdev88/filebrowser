@@ -377,6 +377,7 @@
     "displayName": "Display Name:",
     "download": "Download files",
     "downloadMessage": "Choose the format you want to download.",
+    "downloadFailed": "Chunked download failed - if this repeats, try reducing the chunk size: {message}",
     "archive": "Create archive",
     "archiveMessage": "Create an archive on the server from the selected items.",
     "archiveDestination": "Choose destination folder (then enter archive name below):",
@@ -545,9 +546,7 @@
     "passwordsDoNotMatch": "Passwords do not match",
     "loginMethod": "Login method",
     "loginMethods": {
-      "password": "Password",
-      "oidc": "OIDC",
-      "proxy": "Proxy"
+      "password": "Password"
     },
     "loginMethodDescription": "allowed login method for the user.",
     "modifyOtherUser": "Modify user:",
@@ -792,7 +791,10 @@
     "saveAbortedMessage":"Save operation aborted. The application's active file ({activeFile}) does not match the file you are trying to save ({tryingToSave}).",
     "syncFailed":"failed to sync state with the route for \"{filename}\" after 5 attempts. Aborting editor setup to prevent data corruption.",
     "fileSaved":"File saved!",
-    "errorSavingFile":"Error saving file: {error}"
+    "errorSavingFile":"Error saving file: {error}",
+    "lines": "{count} lines",
+    "words": "{count} words",
+    "chars": "{count} characters"
   },
   "player": {
     "LoopEnabled": "Loop Enabled",

@@ -240,7 +240,8 @@
     "unarchive": "Výpis archívu",
     "unarchiveMessage": "Vyberte, kam sa má archív extrahovať.",
     "unarchiveDestination": "Výpis na:",
-    "unarchiveSuccess": "Archív úspešne extrahovaný!"
+    "unarchiveSuccess": "Archív úspešne extrahovaný!",
+    "downloadFailed": "Sťahovanie po častiach zlyhalo - ak sa to opakuje, skúste zmenšiť veľkosť časti: {message}"
   },
   "search": {
     "smallerThan": "Menšie ako:",
@@ -343,9 +344,7 @@
     "brandingHelp": "Vzhľad a pôsobenie inštancie Prieskumníka súborov môžete prispôsobiť zmenou názvu, výmenou loga, pridaním vlastných štýlov a dokonca aj zakázaním externých prepojení na GitHub.\nViac informácií o používaní vlastnej značky nájdete na stránke {0}.",
     "commandRunnerHelp": "Tu môžete nastaviť príkazy, ktoré sa vykonajú v pomenovaných udalostiach. Na každý riadok musíte napísať jeden. K dispozícii budú premenné prostredia {0} a {1}, pričom {0} bude relatívne k {1}. Viac informácií o tejto funkcii a dostupných premenných prostredia nájdete na stránke {2}.",
     "loginMethods": {
-      "password": "Heslo",
-      "oidc": "OIDC",
-      "proxy": "Proxy"
+      "password": "Heslo"
     },
     "newUserHintSubFolder": "napr. '/subfolder' - prázdne pre predvolené nastavenie",
     "permissionsHelp": "Oprávnenia používateľa riadia prístup k typom akcií, ktoré môže používateľ vykonávať. Prístup administrátora poskytuje úplnú kontrolu nad aktualizáciou a zmenou nastavení ktoréhokoľvek používateľa, ako aj nad mnohými systémovými nastaveniami.",
@@ -784,7 +783,10 @@
     "saveAbortedMessage": "Operácia uloženia sa prerušila. Aktívny súbor aplikácie ({activeFile}) sa nezhoduje so súborom, ktorý sa pokúšate uložiť ({tryingToSave}).",
     "syncFailed": "sa nepodarilo synchronizovať stav s trasou pre \"{filename}\" po 5 pokusoch. Prerušenie nastavenia editora, aby sa zabránilo poškodeniu údajov.",
     "fileSaved": "Súbor uložený!",
-    "errorSavingFile": "Chyba pri ukladaní súboru: {error}"
+    "errorSavingFile": "Chyba pri ukladaní súboru: {error}",
+    "lines": "{count} riadkov",
+    "words": "{count} slov",
+    "chars": "{count} znakov"
   },
   "player": {
     "LoopEnabled": "Slučka povolená",

@@ -240,7 +240,8 @@
     "unarchive": "Extrair arquivo",
     "unarchiveMessage": "Escolha onde extrair o arquivo.",
     "unarchiveDestination": "Extrair para:",
-    "unarchiveSuccess": "Arquivo extraído com sucesso!"
+    "unarchiveSuccess": "Arquivo extraído com sucesso!",
+    "downloadFailed": "Falha no download em pedaços - se isso se repetir, tente reduzir o tamanho do pedaço: {message}"
   },
   "search": {
     "smallerThan": "Menor que:",
@@ -343,9 +344,7 @@
     "brandingHelp": "Você pode personalizar a aparência da instância do Navegador de arquivos alterando seu nome, substituindo o logotipo, adicionando estilos personalizados e até mesmo desativando links externos para o GitHub.\nPara obter mais informações sobre branding personalizado, consulte {0}.",
     "commandRunnerHelp": "Aqui você pode definir comandos que são executados nos eventos nomeados. Você deve escrever um por linha. As variáveis de ambiente {0} e {1} estarão disponíveis, sendo {0} relativo a {1}. Para obter mais informações sobre esse recurso e as variáveis de ambiente disponíveis, leia {2}.",
     "loginMethods": {
-      "password": "Senha",
-      "oidc": "OIDC",
-      "proxy": "Proxy"
+      "password": "Senha"
     },
     "newUserHintSubFolder": "Por exemplo, '/subfolder' - em branco para o padrão",
     "permissionsHelp": "As permissões de usuário controlam o acesso aos tipos de ações que o usuário pode executar. O acesso de administrador dá controle total para atualizar e alterar as configurações de qualquer usuário, bem como muitas configurações do sistema.",
@@ -784,7 +783,10 @@
     "saveAbortedMessage": "Operação de salvamento abortada. O arquivo ativo do aplicativo ({activeFile}) não corresponde ao arquivo que você está tentando salvar ({tryingToSave}).",
     "syncFailed": "Falha ao sincronizar o estado com a rota para \"{filename}\" após 5 tentativas. Abortar a configuração do editor para evitar a corrupção de dados.",
     "fileSaved": "Arquivo salvo!",
-    "errorSavingFile": "Erro ao salvar o arquivo: {error}"
+    "errorSavingFile": "Erro ao salvar o arquivo: {error}",
+    "lines": "{count} linhas",
+    "words": "{count} palavras",
+    "chars": "{count} caracteres"
   },
   "player": {
     "LoopEnabled": "Repetição ativada",

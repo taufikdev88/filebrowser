@@ -124,7 +124,9 @@ func withHashFileHelper(fn handleFunc) handleFunc {
 		}
 		data.IndexPath = pathWithoutUserScope
 		// skip file fetch for certain apis
-		if r.Method == "POST" && strings.Contains(r.URL.Path, "/resources") || r.Method == "GET" && strings.Contains(r.URL.Path, "/resources/items") {
+		if (r.Method == "POST" && strings.Contains(r.URL.Path, "/resources")) ||
+			(r.Method == "GET" && strings.Contains(r.URL.Path, "/resources/items")) ||
+			(r.Method == "GET" && strings.Contains(r.URL.Path, "/media/metadata")) {
 			return fn(w, r, data)
 		}
 		file, err := FileInfoFasterFunc(utils.FileOptions{
@@ -328,6 +330,12 @@ func withoutUserHelper(fn handleFunc) handleFunc {
 // allow user without OTP to pass
 func userWithoutOTPhelper(fn handleFunc) handleFunc {
 	return func(w http.ResponseWriter, r *http.Request, d *requestContext) (int, error) {
+		if config.Auth.Methods.ProxyAuth.Enabled {
+			proxyUser := r.Header.Get(config.Auth.Methods.ProxyAuth.Header)
+			if proxyUser != "" {
+				return getProxyUser(w, r, d, fn, proxyUser)
+			}
+		}
 		// Check if request has a valid admin token first
 		if tokenStr, err := extractToken(r); err == nil && tokenStr != "" {
 			keyFunc := func(token *jwt.Token) (interface{}, error) {

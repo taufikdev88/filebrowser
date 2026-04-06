@@ -1,13 +1,13 @@
 <template>
   <div class="card headline-card">
-    <div v-if="isDataLoaded && shouldShowLogin" class="card-wrapper user-card">
+    <div v-if="isDataLoaded && shouldShowLogin" class="card-wrapper user-card" :class="{ 'extra-padding': !disableQuickToggles }">
       <div v-if="settingsAllowed" class="inner-card user-card__profile">
         <a href="/settings#profile-main" class="person-button action button"
           @click.prevent="navigateTo('/settings', '#profile-main')"
           @mouseenter="showTooltip($event, $t('index.settingsHover'))" @mouseleave="hideTooltip">
-          <i class="material-icons person-button__icon">person</i>
+          <i class="material-symbols person-button__icon">person</i>
           <span class="person-button__name">{{ user.username }}</span>
-          <i aria-label="settings" class="material-icons person-button__icon">settings</i>
+          <i aria-label="settings" class="material-symbols person-button__icon">settings</i>
         </a>
       </div>
       <div v-else-if="user.username === 'anonymous' && shouldShowLogin" @click="navigateToLogin"
@@ -18,7 +18,7 @@
       </div>
       <div v-else-if="user.username !== 'anonymous'" class="inner-card user-card__profile">
         <button class="person-button action button" type="button">
-          <i class="material-icons person-button__icon">person</i>
+          <i class="material-symbols person-button__icon">person</i>
           <span class="person-button__name">{{ user.username }}</span>
         </button>
       </div>
@@ -26,7 +26,7 @@
       <div class="inner-card" v-if="canLogout" @click="logout">
         <button aria-label="logout-button" class="logout-button action button"
           @mouseenter="showTooltip($event, $t('general.logout'))" @mouseleave="hideTooltip">
-          <i class="material-icons">exit_to_app</i>
+          <i class="material-symbols">exit_to_app</i>
         </button>
       </div>
     </div>
@@ -35,16 +35,16 @@
       <div class="quick-toggles" :class="{ 'extra-padding': hasCreateOptions }">
         <div class="clickable" :class="{ active: user?.singleClick }" @click="toggleClick"
           @mouseenter="showTooltip($event, $t('index.toggleClick'))" @mouseleave="hideTooltip" v-if="!isInvalidShare">
-          <i class="material-icons">ads_click</i>
+          <i class="material-symbols">ads_click</i>
         </div>
         <div aria-label="Toggle Theme" v-if="darkModeTogglePossible" class="clickable"
           :class="{ active: user?.darkMode }" @click="toggleDarkMode"
           @mouseenter="showTooltip($event, $t('index.toggleDark'))" @mouseleave="hideTooltip">
-          <i class="material-icons">dark_mode</i>
+          <i class="material-symbols">dark_mode</i>
         </div>
         <div class="clickable" :class="{ active: isStickySidebar }" @click="toggleSticky"
           @mouseenter="showTooltip($event, $t('index.toggleSticky'))" @mouseleave="hideTooltip" v-if="!isMobile">
-          <i class="material-icons">push_pin</i>
+          <i class="material-symbols">push_pin</i>
         </div>
       </div>
     </div>
@@ -54,7 +54,7 @@
       @leave="leave">
       <div v-if="!hideSidebarFileActions && isListingView" class="card-wrapper">
         <button @click="openContextMenu" aria-label="File-Actions" data-testid="file-actions-button" class="action file-actions">
-          <i class="material-icons">add</i>
+          <i class="material-symbols">add</i>
           {{ $t("sidebar.fileActions") }}
         </button>
       </div>
@@ -75,7 +75,6 @@
 import * as auth from "@/utils/auth";
 import { globalVars } from "@/utils/constants";
 import { state, getters, mutations } from "@/store";
-import { fromNow } from "@/utils/moment";
 import SidebarLinks from "./Links.vue";
 
 export default {
@@ -104,7 +103,6 @@ export default {
     },
     shareInfo: () => state.shareInfo,
     disableQuickToggles: () => state.user?.disableQuickToggles,
-    hasSourceInfo: () => state.sources.hasSourceInfo,
     hideSidebarFileActions() {
       return state.user?.hideSidebarFileActions || getters.isInvalidShare() || !this.hasCreateOptions;
     },
@@ -115,13 +113,8 @@ export default {
     isInvalidShare: () => getters.isInvalidShare(),
     isListingView: () => getters.currentView() == "listingView",
     user: () => (state.user || {username: 'anonymous'}),
-    isDarkMode: () => getters.isDarkMode(),
     isShare: () => getters.isShare(),
-    showSources: () => !getters.isShare(),
-    currentPrompt: () => getters.currentPrompt(),
     active: () => getters.isSidebarVisible(),
-    signup: () => globalVars.signup,
-    disableExternal: () => globalVars.disableExternal,
     canLogout: () => !globalVars.noAuth && state.user?.username !== 'anonymous',
     route: () => state.route,
     realtimeActive: () => state.realtimeActive,
@@ -159,32 +152,6 @@ export default {
     },
     checkLogin() {
       return getters.isLoggedIn() && !getters.routePath().startsWith("/share");
-    },
-    getComplexityLabel(complexity) {
-      // Translate complexity integer to i18n label
-      // Frontend interprets: 0=unknown, 1=simple, 2-6=normal, 7-9=complex, 10=highlyComplex
-      if (complexity === 0) return this.$t("index.unknown");
-      if (complexity === 1) return this.$t("index.simple");
-      if (complexity >= 2 && complexity <= 6) return this.$t("index.normal");
-      if (complexity >= 7 && complexity <= 9) return this.$t("index.complex");
-      if (complexity === 10) return this.$t("index.highlyComplex");
-      return this.$t("index.unknown");
-    },
-    getStatusLabel(status) {
-      // Translate status string to i18n label
-      switch (status) {
-        case "ready":
-          return this.$t("index.ready");
-        case "indexing":
-          return this.$t("index.indexing");
-        case "unavailable":
-          return this.$t("index.unavailable");
-        case "error":
-          return this.$t("index.error");
-        case "unknown":
-        default:
-          return this.$t("index.unknown");
-      }
     },
     toggleClick() {
       mutations.updateCurrentUser({ singleClick: !state.user.singleClick });
@@ -249,78 +216,18 @@ export default {
         el.addEventListener('transitionend', onTransitionEnd);
       });
     },
-          showTooltip(event, text) {
-        if (text) {
-          mutations.showTooltip({
-            content: text,
-            x: event.clientX,
-            y: event.clientY,
-          });
-        }
-      },
-      hideTooltip() {
-        mutations.hideTooltip();
-      },
-      showSourceTooltip(event, info) {
-        if (info) {
-          const tooltipContent = this.buildSourceTooltipContent(info);
-          mutations.showTooltip({
-            content: tooltipContent,
-            x: event.clientX,
-            y: event.clientY,
-          });
-        }
-      },
-      buildSourceTooltipContent(info) {
-        const getHumanReadable = (lastIndex) => {
-          if (isNaN(Number(lastIndex))) return "";
-          let val = Number(lastIndex);
-          if (val === 0) {
-            return "now";
-          }
-          return fromNow(val, state.user.locale);
-        };
-
-        return `
-          <table style="border-collapse: collapse; text-align: left;">
-            <thead>
-              <tr>
-                <th colspan="2" style="text-align: center; font-weight: bold; font-size: 1.1em; padding-bottom: 0.3em; border-bottom: 1px solid #888;">${info.name || 'Source'}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${this.$t("general.status")}</td>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${this.getStatusLabel(info.status)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${this.$t("index.assessment")}</td>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${this.getComplexityLabel(info.complexity || 0)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${this.$t("general.files")}</td>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${info.files || 0}</td>
-              </tr>
-              <tr>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${this.$t("general.folders")}</td>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${info.folders || 0}</td>
-              </tr>
-              <tr>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${this.$t("index.lastScanned")}</td>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${getHumanReadable(info.lastIndex)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${this.$t("index.quickScan")}</td>
-                <td style="padding: 0.2em 0.5em; border-bottom: 1px solid #ccc;">${isNaN(Number(info.quickScanDurationSeconds)) ? '' : Number(info.quickScanDurationSeconds)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 0.2em 0.5em;">${this.$t("index.fullScan")}</td>
-                <td style="padding: 0.2em 0.5em;">${isNaN(Number(info.fullScanDurationSeconds)) ? '' : Number(info.fullScanDurationSeconds)}</td>
-              </tr>
-            </tbody>
-          </table>
-        `;
-      },
+    showTooltip(event, text) {
+      if (text) {
+        mutations.showTooltip({
+          content: text,
+          x: event.clientX,
+          y: event.clientY,
+        });
+      }
+    },
+    hideTooltip() {
+      mutations.hideTooltip();
+    },
   },
 };
 </script>
@@ -333,7 +240,6 @@ export default {
   align-items: center;
   width: 100%;
   color: var(--textPrimary);
-  margin-bottom: 0.5em;
 }
 
 .user-card > .user-card__profile {
@@ -370,12 +276,6 @@ export default {
   width: 100%;
 }
 
-.usage-info {
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-}
-
 .quick-toggles div {
   border-radius: 10em;
   background-color: var(--surfaceSecondary);
@@ -406,7 +306,6 @@ button.action {
   padding: 0px !important;
 }
 
-
 .card-wrapper {
   display: flex !important;
   flex-direction: column;
@@ -425,10 +324,10 @@ button.action {
   width: 100%;
   box-sizing: border-box;
   display: flex;
-  padding-right: 1em !important;
+  padding-right: 0;
   justify-content: flex-start;
   align-items: center;
-  gap: 0.35em;
+  gap: 0.3em;
 }
 
 .person-button__icon {
@@ -443,11 +342,6 @@ button.action {
   white-space: nowrap;
 }
 
-a.person-button {
-  text-decoration: none;
-  cursor: pointer;
-}
-
 .file-actions {
   padding: 0.25em !important;
   margin-top: 0.5em !important;
@@ -458,19 +352,6 @@ a.person-button {
 
 .file-actions i {
   padding: 0em !important;
-}
-
-.expand-enter-active,
-.expand-leave-active {
-  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-  will-change: opacity, height;
-}
-
-.expand-enter,
-.expand-leave-to {
-  height: 0 !important;
-  opacity: 0;
 }
 
 .extra-padding {

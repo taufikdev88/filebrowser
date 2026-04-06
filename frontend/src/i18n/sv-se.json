@@ -240,7 +240,8 @@
     "unarchive": "Extrahera arkiv",
     "unarchiveMessage": "Välj var du vill extrahera arkivet.",
     "unarchiveDestination": "Extrahera till:",
-    "unarchiveSuccess": "Arkivet har extraherats framgångsrikt!"
+    "unarchiveSuccess": "Arkivet har extraherats framgångsrikt!",
+    "downloadFailed": "Nedladdningen av chunked misslyckades - om detta upprepas, försök att minska chunkstorleken: {message}"
   },
   "search": {
     "smallerThan": "Mindre än:",
@@ -343,9 +344,7 @@
     "brandingHelp": "Du kan anpassa hur din File Browser-instans ser ut och känns genom att ändra dess namn, byta ut logotypen, lägga till anpassade stilar och till och med inaktivera externa länkar till GitHub.\nFör mer information om anpassad branding, se {0}.",
     "commandRunnerHelp": "Här kan du ställa in kommandon som utförs i de namngivna händelserna. Du måste skriva ett per rad. Miljövariablerna {0} och {1} kommer att vara tillgängliga, {0} i förhållande till {1}. För mer information om denna funktion och de tillgängliga miljövariablerna, läs {2}.",
     "loginMethods": {
-      "password": "Lösenord",
-      "oidc": "OIDC",
-      "proxy": "Proxy"
+      "password": "Lösenord"
     },
     "newUserHintSubFolder": "t.ex. \"/undermapp\" - tom för standard",
     "permissionsHelp": "Användarbehörigheter styr vilka typer av åtgärder som användaren kan utföra. Administratörsbehörighet ger full kontroll över uppdatering och ändring av alla användarinställningar samt många systeminställningar.",
@@ -784,7 +783,10 @@
     "saveAbortedMessage": "Spara åtgärden avbröts. Programmets aktiva fil ({activeFile}) stämmer inte överens med den fil du försöker spara ({tryingToSave}).",
     "syncFailed": "lyckades inte synkronisera tillstånd med rutten för \"{filename}\" efter 5 försök. Avbryter redigeringsinställningen för att förhindra datakorruption.",
     "fileSaved": "Filen är sparad!",
-    "errorSavingFile": "Fel vid lagring av fil: {error}"
+    "errorSavingFile": "Fel vid lagring av fil: {error}",
+    "lines": "{count} rader",
+    "words": "{count} ord",
+    "chars": "{count} tecken"
   },
   "player": {
     "LoopEnabled": "Loop aktiverad",

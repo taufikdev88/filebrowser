@@ -7,7 +7,7 @@
           <div class="settings-number-input item">
             <div class="no-padding">
               <label for="maxConcurrentUpload">{{ $t("fileLoading.maxConcurrentUpload") }}</label>
-              <i class="no-select material-symbols-outlined tooltip-info-icon"
+              <i class="material-symbols-outlined tooltip-info-icon"
                 @mouseenter="showTooltip($event, $t('fileLoading.maxConcurrentUploadHelp'))" @mouseleave="hideTooltip">
                 help
               </i>
@@ -20,7 +20,7 @@
           <div class="settings-number-input item">
             <div class="no-padding">
               <label for="uploadChunkSizeMb">{{ $t("fileLoading.uploadChunkSizeMb") }}</label>
-              <i class="no-select material-symbols-outlined tooltip-info-icon"
+              <i class="material-symbols-outlined tooltip-info-icon"
                 @mouseenter="showTooltip($event, $t('fileLoading.uploadChunkSizeMbHelp'))" @mouseleave="hideTooltip">
                 help
               </i>
@@ -37,7 +37,7 @@
       <div class="upload-prompt" :class="{ dropping: isDragging }" @dragenter.prevent="onDragEnter"
         @dragover.prevent="onDragOver" @dragleave.prevent="onDragLeave" @drop.prevent="onDrop">
         <div class="upload-prompt-container">
-          <i v-if="files.length === 0" class="material-icons">cloud_upload</i>
+          <i v-if="files.length === 0" class="material-symbols">cloud_upload</i>
           <p v-if="files.length === 0">{{ $t("prompts.dragAndDrop") }}</p>
           <div class="button-group">
             <button @click="triggerFilePicker" class="button button--flat">
@@ -65,7 +65,7 @@
       </div>
       <div class="upload-list">
         <div v-for="file in files" :key="file.id" class="upload-item">
-          <i class="material-icons file-icon">{{ file.type === "directory" ? "folder" : "insert_drive_file" }}</i> <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
+          <i class="material-symbols file-icon">{{ file.type === "directory" ? "folder" : "insert_drive_file" }}</i> <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
           <div class="file-info">
             <p class="file-name">{{ file.name }}</p>
             <progress-bar v-if="file.type !== 'directory'" :val="file.status === 'completed'
@@ -86,23 +86,23 @@
           <div class="file-actions">
             <button v-if="file.status === 'uploading'" @click="uploadManager.pause(file.id)" class="action"
               :aria-label="$t('general.pause')" :title="$t('general.pause')">
-              <i class="material-icons">pause</i>
+              <i class="material-symbols">pause</i>
             </button>
             <button v-if="file.status === 'paused'" @click="uploadManager.resume(file.id)" class="action"
               :aria-label="$t('general.resume')" :title="$t('general.resume')">
-              <i class="material-icons">play_arrow</i>
+              <i class="material-symbols">play_arrow</i>
             </button>
             <button v-if="file.status === 'error'" @click="uploadManager.retry(file.id)" class="action"
               :aria-label="$t('general.retry')" :title="$t('general.retry')">
-              <i class="material-icons">replay</i>
+              <i class="material-symbols">replay</i>
             </button>
             <button v-if="file.status === 'conflict'" @click="handleConflictAction(file)" class="action"
               :aria-label="$t('general.replace')" :title="$t('general.replace')">
-              <i class="material-icons">sync_problem</i>
+              <i class="material-symbols">sync_problem</i>
             </button>
             <button @click="cancelUpload(file.id)" class="action" :aria-label="$t('general.cancel')"
               :title="$t('general.cancel')">
-              <i class="material-icons">close</i>
+              <i class="material-symbols">close</i>
             </button>
           </div>
         </div>
@@ -171,10 +171,10 @@ export default {
       return state.shareInfo;
     },
     uploadSettingsDescription() {
-      const maxConcurrentUpload = state.user.fileLoading?.maxConcurrentUpload || 3;
-      let uploadChunkSizeMb = state.user.fileLoading?.uploadChunkSizeMb || 5;
+      const maxConcurrentUpload = state.user.fileLoading?.maxConcurrentUpload;
+      const uploadChunkSizeMb = state.user.fileLoading?.uploadChunkSizeMb;
       if (uploadChunkSizeMb === 0) {
-        uploadChunkSizeMb = 5;
+        return this.$t("prompts.uploadSettingsNoChunk", { maxConcurrentUpload });
       }
       return this.$t("prompts.uploadSettingsChunked", {
         maxConcurrentUpload,
@@ -193,11 +193,8 @@ export default {
     let wakeLock = null;
 
     // Upload settings
-    const maxConcurrentUpload = ref(state.user.fileLoading?.maxConcurrentUpload || 3);
-    const uploadChunkSizeMb = ref(state.user.fileLoading?.uploadChunkSizeMb || 5);
-    if (uploadChunkSizeMb.value === 0) {
-      uploadChunkSizeMb.value = 5;
-    }
+    const maxConcurrentUpload = ref(state.user.fileLoading?.maxConcurrentUpload);
+    const uploadChunkSizeMb = ref(state.user.fileLoading?.uploadChunkSizeMb);
     const clearAll = ref(state.user.fileLoading?.clearAll || false);
 
     const showTooltip = (event, text) => {
@@ -386,13 +383,19 @@ export default {
       const destination = getDestinationPath();
       // When items are passed as a prop from ListingView, they can be either
       // an array of DataTransferItem (from drag and drop) or an array of File (from input).
+      // or an array of objects (from clipboard paste of the OS).
       if (Array.isArray(items)) {
-        if (items.length > 0 && items[0] instanceof File) {
+        if (items.length === 0) return;
+        const first = items[0];
+        if (first instanceof File) {
           // This is an array of File objects from the input fallback in ListingView
           processFileList(items, destination);
-        } else {
+        } else if (typeof first.getAsFile === 'function') {
           // This is an array of DataTransferItem from drag and drop in ListingView
           await processDroppedItems(items, destination);
+        } else if (first.file instanceof File && typeof first.relativePath === 'string') {
+          // This is an array of objects {file, relativePath} for paste from clipboard OS.
+          uploadManager.add(destination, items);
         }
       } else if (items) {
         // This case handles a FileList object from the upload prompt's own input fields.
@@ -759,5 +762,9 @@ export default {
 
 .sizeInput {
   max-width: 100px;
+}
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

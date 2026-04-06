@@ -318,7 +318,8 @@
     "unarchive": "Výpis archivu",
     "unarchiveMessage": "Vyberte, kam se má archiv rozbalit.",
     "unarchiveDestination": "Výpis na:",
-    "unarchiveSuccess": "Archiv úspěšně extrahován!"
+    "unarchiveSuccess": "Archiv úspěšně extrahován!",
+    "downloadFailed": "Stahování po částech se nezdařilo - pokud se tato situace opakuje, zkuste zmenšit velikost části: {message}"
   },
   "search": {
     "smallerThan": "Menší než:",
@@ -487,9 +488,7 @@
     "brandingHelp": "Vzhled instance Průzkumníka souborů si můžete přizpůsobit změnou názvu, nahrazením loga, přidáním vlastních stylů a dokonce i zakázáním externích odkazů na GitHub.\nDalší informace o vlastním brandingu naleznete na stránce {0}.",
     "commandRunnerHelp": "Zde můžete nastavit příkazy, které se provedou v pojmenovaných událostech. Na každý řádek musíte napsat jeden. K dispozici budou proměnné prostředí {0} a {1}, přičemž {0} bude relativní vůči {1}. Další informace o této funkci a dostupných proměnných prostředí naleznete na {2}.",
     "loginMethods": {
-      "password": "Heslo",
-      "oidc": "OIDC",
-      "proxy": "Proxy"
+      "password": "Heslo"
     },
     "newUserHintSubFolder": "např. '/subfolder' - prázdný pro výchozí nastavení",
     "permissionsHelp": "Oprávnění uživatele řídí přístup k typům akcí, které může uživatel provádět. Přístup administrátora poskytuje plnou kontrolu nad aktualizací a změnou nastavení libovolného uživatele i nad mnoha nastaveními systému.",
@@ -784,7 +783,10 @@
     "saveAbortedMessage": "Operace ukládání byla přerušena. Aktivní soubor aplikace ({activeFile}) neodpovídá souboru, který se pokoušíte uložit ({tryingToSave}).",
     "syncFailed": "po 5 pokusech se nepodařilo synchronizovat stav s trasou pro \"{filename}\". Přerušení nastavení editoru, aby se zabránilo poškození dat.",
     "fileSaved": "Soubor uložen!",
-    "errorSavingFile": "Chyba při ukládání souboru: {error}"
+    "errorSavingFile": "Chyba při ukládání souboru: {error}",
+    "lines": "{count} řádků",
+    "words": "{count} slov",
+    "chars": "{count} znaků"
   },
   "player": {
     "LoopEnabled": "Smyčka povolena",

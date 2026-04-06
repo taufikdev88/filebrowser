@@ -240,7 +240,8 @@
     "unarchive": "Extrair arquivo",
     "unarchiveMessage": "Escolha onde extrair o arquivo.",
     "unarchiveDestination": "Extrair para:",
-    "unarchiveSuccess": "Arquivo extraído com sucesso!"
+    "unarchiveSuccess": "Arquivo extraído com sucesso!",
+    "downloadFailed": "Falha na transferência em pedaços - se isto se repetir, tente reduzir o tamanho dos pedaços: {message}"
   },
   "search": {
     "smallerThan": "Mais pequeno do que:",
@@ -343,9 +344,7 @@
     "brandingHelp": "É possível personalizar a aparência da instância do Navegador de arquivos alterando seu nome, substituindo o logotipo, adicionando estilos personalizados e até mesmo desativando links externos para o GitHub.\nPara obter mais informações sobre a marca personalizada, consulte {0}.",
     "commandRunnerHelp": "Aqui pode definir comandos que são executados nos eventos nomeados. Deve escrever um por linha. As variáveis de ambiente {0} e {1} estarão disponíveis, sendo {0} relativo a {1}. Para obter mais informações sobre este recurso e as variáveis de ambiente disponíveis, leia {2}.",
     "loginMethods": {
-      "password": "Palavra-passe",
-      "oidc": "OIDC",
-      "proxy": "Proxy"
+      "password": "Palavra-passe"
     },
     "newUserHintSubFolder": "por exemplo, '/subpasta' - em branco por defeito",
     "permissionsHelp": "As permissões de utilizador controlam o acesso ao tipo de acções que o utilizador pode executar. O acesso de administrador dá controlo total para atualizar e alterar as definições de qualquer utilizador, bem como muitas definições do sistema.",
@@ -784,7 +783,10 @@
     "saveAbortedMessage": "Operação de gravação abortada. O ficheiro ativo da aplicação ({activeFile}) não corresponde ao ficheiro que está a tentar guardar ({tryingToSave}).",
     "syncFailed": "não conseguiu sincronizar o estado com a rota para \"{filename}\" após 5 tentativas. Abortar a configuração do editor para evitar a corrupção de dados.",
     "fileSaved": "Ficheiro guardado!",
-    "errorSavingFile": "Erro ao guardar o ficheiro: {error}"
+    "errorSavingFile": "Erro ao guardar o ficheiro: {error}",
+    "lines": "{count} linhas",
+    "words": "{count} palavras",
+    "chars": "{count} caracteres"
   },
   "player": {
     "LoopEnabled": "Repetição ativada",

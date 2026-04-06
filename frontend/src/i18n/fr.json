@@ -240,7 +240,8 @@
     "unarchive": "Extraire l'archive",
     "unarchiveMessage": "Choisissez l'endroit où extraire l'archive.",
     "unarchiveDestination": "Extrait à :",
-    "unarchiveSuccess": "L'archive a été extraite avec succès !"
+    "unarchiveSuccess": "L'archive a été extraite avec succès !",
+    "downloadFailed": "Échec du téléchargement groupé - si cela se répète, essayez de réduire la taille des morceaux : {message}"
   },
   "search": {
     "smallerThan": "Plus petit que :",
@@ -345,9 +346,7 @@
     "brandingHelp": "Vous pouvez personnaliser l'apparence de votre instance du navigateur de fichiers en changeant son nom, en remplaçant le logo, en ajoutant des styles personnalisés et même en désactivant les liens externes vers GitHub.\nPour plus d'informations sur la personnalisation de l'image de marque, consultez le site {0}.",
     "commandRunnerHelp": "Vous pouvez définir ici les commandes qui seront exécutées dans les événements nommés. Vous devez en écrire une par ligne. Les variables d'environnement {0} et {1} seront disponibles, {0} étant relatif à {1}. Pour plus d'informations sur cette fonctionnalité et les variables d'environnement disponibles, veuillez consulter le site {2}.",
     "loginMethods": {
-      "password": "Mot de passe",
-      "oidc": "OIDC",
-      "proxy": "Proxy"
+      "password": "Mot de passe"
     },
     "newUserHintSubFolder": "par exemple \"/sous-dossier\" - vide par défaut",
     "permissionsHelp": "Les autorisations de l'utilisateur contrôlent l'accès au type d'actions que l'utilisateur peut effectuer. L'accès administrateur permet de mettre à jour et de modifier les paramètres de tout utilisateur ainsi que de nombreux paramètres du système.",
@@ -784,7 +783,10 @@
     "saveAbortedMessage": "L'opération d'enregistrement a été interrompue. Le fichier actif de l'application ({activeFile}) ne correspond pas au fichier que vous essayez d'enregistrer ({tryingToSave}).",
     "syncFailed": "n'a pas réussi à synchroniser l'état avec l'itinéraire pour \"{filename}\" après 5 tentatives. Abandon de la configuration de l'éditeur pour éviter la corruption des données.",
     "fileSaved": "Fichier sauvegardé !",
-    "errorSavingFile": "Erreur d'enregistrement du fichier : {error}"
+    "errorSavingFile": "Erreur d'enregistrement du fichier : {error}",
+    "lines": "{count} lignes",
+    "words": "{count} mots",
+    "chars": "{count} caractères"
   },
   "player": {
     "LoopEnabled": "Boucle activée",

@@ -1,15 +1,20 @@
 <template>
   <div id="status-bar" :style="moveWithSidebar" :class="{ 'dark-mode-header': isDarkMode, 'active': showStatusBar }" @contextmenu.prevent.stop @touchstart.stop @touchend.stop>
     <div class="status-content" @contextmenu.prevent.stop @touchstart.stop @touchend.stop>
-      <div v-if="selectedCount > 0" class="status-info">
-        <span class="button">{{ selectedCount }}</span>
-        <span>{{ selectedItemsText }}</span>
+      <!-- Left side: selection/directory info and stats for the editor and markdown viewer -->
+      <div class="status-info">
+        <template v-if="isEditorOrMarkdownView">
+          <span>{{ editorStatsText }}</span>
+        </template>
+        <template v-else>
+          <span v-if="selectedCount > 0" class="button">{{ selectedCount }}</span>
+          <span v-if="selectedCount > 0">{{ selectedItemsText }}</span>
+          <span v-else>{{ directoryInfoText }}</span>
+        </template>
       </div>
-      <div v-else class="status-info">
-        <span class="directory-info">{{ directoryInfoText }}</span>
-      </div>
+      <!-- Right side: Slider to control the listing size or the font size in editor -->
       <div class="status-controls">
-        <div v-if="showGallerySize" class="gallery-size-control">
+        <div v-if="currentView === 'listingView'" class="gallery-size-control">
           <span class="size-label">{{ $t("general.size") }}</span>
           <input
             v-model="gallerySize"
@@ -21,6 +26,17 @@
             @input="updateGallerySize"
             @change="commitGallerySize"
           />
+        </div>
+        <div v-if="currentView === 'editor'" class="gallery-size-control">
+          <span class="size-label">{{ $t("general.size") }}</span>
+          <input
+            v-model="editorFontSize"
+            type="range"
+            min="10"
+            max="24"
+            step="1"
+          />
+          <span class="size-label">{{ editorFontSize }}px</span> <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
         </div>
       </div>
     </div>
@@ -39,11 +55,17 @@ export default {
     };
   },
   computed: {
+    currentView() {
+      return getters.currentView();
+    },
+    isEditorOrMarkdownView() {
+      return this.currentView === 'editor' || this.currentView === 'markdownViewer';
+    },
     showStatusBar() {
       if (getters.isShare() && state.shareInfo.shareType === "upload") {
         return false;
       }
-      return getters.currentView() === "listingView";
+      return this.currentView === "listingView" || this.isEditorOrMarkdownView;
     },
     isDarkMode() {
       return getters.isDarkMode();
@@ -56,9 +78,6 @@ export default {
     },
     numFiles() {
       return getters.reqNumFiles();
-    },
-    showGallerySize() {
-      return getters.isCardView() && state.req?.items?.length > 0;
     },
     totalDirectorySize() {
       if (!Array.isArray(state.req?.items)) return 0;
@@ -117,6 +136,30 @@ export default {
       }
       return {};
     },
+    editorStatsText() {
+      const { lines, words, chars } = state.editorStats;
+      return [
+        [words, chars]
+          .map((v, i) => v != null && this.$t(i === 0 ? 'editor.words' : 'editor.chars', { count: v }))
+          .filter(Boolean)
+          .join(', '),
+        lines != null && this.$t('editor.lines', { count: lines })
+      ].filter(Boolean).join(' | ');
+    },
+    editorFontSize: {
+      get() {
+        return state.editorFontSize;
+      },
+      set(value) {
+        mutations.setEditorFontSize(value);
+      }
+    },
+  },
+  mounted() {
+    window.addEventListener('wheel', this.handleWheel, { passive: false });
+  },
+  beforeUnmount() {
+    window.removeEventListener('wheel', this.handleWheel);
   },
   methods: {
     updateGallerySize(event) {
@@ -157,6 +200,28 @@ export default {
         mutations.updateCurrentUser({ viewMode: newMode });
       }
     },
+    // Ctrl + Mouse Wheel to adjust the slider sizes
+    handleWheel(event) {
+      if (!event.ctrlKey) return;
+
+      const delta = event.deltaY > 0 ? 1 : -1; // Scroll down increases, up decreases
+
+      if (this.currentView === 'listingView') {
+        event.preventDefault();
+        let newSize = Math.min(9, Math.max(1, this.gallerySize - delta));
+        if (newSize !== this.gallerySize) {
+          this.gallerySize = newSize;
+          mutations.setGallerySize(newSize);
+          this.adjustViewMode();
+        }
+      } else if (this.currentView === 'editor') {
+        event.preventDefault();
+        let newSize = Math.min(24, Math.max(10, this.editorFontSize - delta));
+        if (newSize !== this.editorFontSize) {
+          this.editorFontSize = newSize;
+        }
+      }
+    }
   },
 };
 </script>

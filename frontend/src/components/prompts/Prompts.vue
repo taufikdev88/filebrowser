@@ -37,7 +37,7 @@
           @mousedown.stop
           @touchstart.stop
         >
-          <i class="material-icons">close</i>
+          <i class="material-symbols">close</i>
         </button>
         <div class="prompt-taskbar-drag">
           <span class="prompt-title">{{ prompt?.props?.title || getDisplayTitle(prompt?.name) }}</span>
@@ -183,9 +183,12 @@ export default {
   },
   mounted() {
     window.addEventListener('resize', this.handleWindowResize);
+    // Bubble phase so prompt inputs (e.g. Rename) handle Enter before we trigger primary action
+    window.addEventListener('keydown', this.onDocumentKeydown);
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
+    window.removeEventListener('keydown', this.onDocumentKeydown);
   },
   methods: {
     handleWindowResize() {
@@ -254,7 +257,7 @@ export default {
       // Explicit switch statement for compile-time safety with ESLint i18n validation
       switch (promptName.toLowerCase()) {
         case "delete":
-          return this.$t("general.delete");
+          return this.$t("prompts.deleteTitle");
         case "access":
           return this.$t("access.rules");
         case "officedebug":
@@ -363,6 +366,60 @@ export default {
       delete this.touchIds[id];
       this.draggingIds.delete(id);
       delete this.sizes[id];
+    },
+    /**
+     * Escape closes the top prompt. Enter clicks the last `.card-actions` button (far right in DOM).
+     * If that button is disabled, Enter does nothing. Skips when focus is in a text field / contenteditable.
+     */
+    onDocumentKeydown(event) {
+      if (this.prompts.length === 0) {
+        return;
+      }
+      // get last prompt by id
+      const top = getters.currentPrompt();
+      if (this.isBlocked(top)) {
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        this.closeTopPrompt(top.id);
+        return;
+      }
+
+      if (event.key !== 'Enter' || event.repeat) {
+        return;
+      }
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+        return;
+      }
+      if (event.defaultPrevented) {
+        return;
+      }
+
+      const primary = this.findPrimaryActionButton(top.id);
+      if (!primary) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      primary.click();
+    },
+    findPrimaryActionButton(promptId) {
+      const root = this.getPromptElement(promptId);
+      if (!root) {
+        return null;
+      }
+      const buttons = root.querySelectorAll('.card-actions button');
+      if (!buttons.length) {
+        return null;
+      }
+      const last = buttons[buttons.length - 1];
+      if (last.disabled) {
+        return null;
+      }
+      return last;
     },
     getPointerPos(e, type) {
       if (type === "touch") {
@@ -762,7 +819,7 @@ export default {
   filter: brightness(1.1);
 }
 
-.prompt-close .material-icons {
+.prompt-close .material-symbols {
   font-size: 1em;
 }
 
