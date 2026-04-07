@@ -82,12 +82,12 @@ func createApiTokenHandler(w http.ResponseWriter, r *http.Request, d *requestCon
 	// Store API token metadata in user's Tokens map
 	authToken.Name = name
 	authToken.Token = tokenString
-	err = state.AddUserToken(d.user.ID, authToken)
+	err = state.AddUserToken(d.user.Username, authToken)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
 
-	// Store token hash → user ID mapping in access storage for fast lookups
+	// Store token hash → user id mapping in access storage for fast lookups
 	err = accessStore.AddApiToken(tokenString, d.user.ID)
 	if err != nil {
 		return http.StatusInternalServerError, err
@@ -123,7 +123,7 @@ func deleteApiTokenHandler(w http.ResponseWriter, r *http.Request, d *requestCon
 	}
 
 	// Perform the user update
-	err := state.DeleteUserToken(d.user.ID, name)
+	err := state.DeleteUserToken(d.user.Username, name)
 	if err != nil {
 		return http.StatusNotFound, err
 	}

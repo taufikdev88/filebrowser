@@ -23,8 +23,8 @@ var (
 	sqlStore *sqldb.SQLStore
 
 	// In-memory caches
-	usersByID       map[uint]*users.User
-	usersByName     map[string]*users.User
+	usersByID   map[uint64]*users.User
+	usersByName map[string]*users.User
 	sharesByHash    map[string]*share.Link
 	sharesByPath    map[string][]string // "source:path" -> []hash
 	indexInfoByPath map[string]*dbindex.IndexInfo
@@ -52,7 +52,7 @@ func Initialize(dbPath string) (bool, error) {
 	}
 
 	// Initialize caches
-	usersByID = make(map[uint]*users.User)
+	usersByID = make(map[uint64]*users.User)
 	usersByName = make(map[string]*users.User)
 	sharesByHash = make(map[string]*share.Link)
 	sharesByPath = make(map[string][]string)
@@ -66,10 +66,14 @@ func Initialize(dbPath string) (bool, error) {
 		return existingDb, fmt.Errorf("failed to load users: %w", err)
 	}
 	for _, user := range usersList {
-		usersByID[user.ID] = user
 		usersByName[user.Username] = user
+		if user.ID != 0 {
+			usersByID[user.ID] = user
+		}
 	}
 	logger.Debugf("Loaded %d users", len(usersList))
+
+	users.SetUsernameToID(UserIDForUsername)
 
 	// Load shares
 	sharesList, err := sqlStore.ListAllShares()
@@ -98,7 +102,7 @@ func Initialize(dbPath string) (bool, error) {
 		AllRules:      make(access.SourceRuleMap),
 		Groups:        make(access.GroupMap),
 		RevokedTokens: make(map[string]struct{}),
-		HashedTokens:  make(map[string]uint),
+		HashedTokens:  make(map[string]uint64),
 	}
 
 	// Load access rules
@@ -155,6 +159,7 @@ func Close() error {
 	defer sharesMux.Unlock()
 	defer indexMux.Unlock()
 
+	users.SetUsernameToID(nil)
 	if sqlStore != nil {
 		return sqlStore.Close()
 	}

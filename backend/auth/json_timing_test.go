@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/gtsteffaniak/filebrowser/backend/auth"
+	"github.com/gtsteffaniak/filebrowser/backend/common/errors"
 	"github.com/gtsteffaniak/filebrowser/backend/common/utils"
 	"github.com/gtsteffaniak/filebrowser/backend/database/users"
 )
@@ -37,31 +38,21 @@ import (
 // mockUserBackend is a simple in-memory user storage for testing.
 type mockUserBackend struct {
 	usersByUsername map[string]*users.User
-	usersByID       map[uint]*users.User
+	usersByID       map[uint64]*users.User
 }
 
 func newMockUserBackend() *mockUserBackend {
 	return &mockUserBackend{
 		usersByUsername: make(map[string]*users.User),
-		usersByID:       make(map[uint]*users.User),
+		usersByID:       make(map[uint64]*users.User),
 	}
 }
 
-func (m *mockUserBackend) GetBy(id interface{}) (*users.User, error) {
-	switch v := id.(type) {
-	case string:
-		if user, ok := m.usersByUsername[v]; ok {
-			return user, nil
-		}
-		return nil, fmt.Errorf("user not found: %s", v)
-	case uint:
-		if user, ok := m.usersByID[v]; ok {
-			return user, nil
-		}
-		return nil, fmt.Errorf("user not found: %d", v)
-	default:
-		return nil, fmt.Errorf("invalid id type")
+func (m *mockUserBackend) GetBy(id uint64) (*users.User, error) {
+	if user, ok := m.usersByID[id]; ok {
+		return user, nil
 	}
+	return nil, fmt.Errorf("user not found: %d", id)
 }
 
 func (m *mockUserBackend) Gets() ([]*users.User, error) {
@@ -84,22 +75,13 @@ func (m *mockUserBackend) Update(u *users.User, adminActor bool, fields ...strin
 	return nil
 }
 
-func (m *mockUserBackend) DeleteByID(id uint) error {
+func (m *mockUserBackend) DeleteByID(id uint64) error {
 	if user, ok := m.usersByID[id]; ok {
 		delete(m.usersByUsername, user.Username)
 		delete(m.usersByID, id)
 		return nil
 	}
 	return fmt.Errorf("user not found: %d", id)
-}
-
-func (m *mockUserBackend) DeleteByUsername(username string) error {
-	if user, ok := m.usersByUsername[username]; ok {
-		delete(m.usersByID, user.ID)
-		delete(m.usersByUsername, username)
-		return nil
-	}
-	return fmt.Errorf("user not found: %s", username)
 }
 
 // setupTestUsers creates a user storage with 2 valid test users
@@ -123,6 +105,15 @@ func setupTestUsers(t *testing.T) *users.Storage {
 
 	backend := newMockUserBackend()
 	storage := users.NewStorage(backend)
+	users.SetUsernameToID(func(username string) (uint64, error) {
+		if u, ok := backend.usersByUsername[username]; ok {
+			return u.ID, nil
+		}
+		return 0, errors.ErrNotExist
+	})
+	t.Cleanup(func() {
+		users.SetUsernameToID(nil)
+	})
 
 	// Create two valid users with hashed passwords
 	password1Hash, err := utils.HashPwd("password123")

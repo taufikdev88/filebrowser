@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+// currentSchemaVersion is the SQLite schema marker for this codebase (version 1).
+// BoltDB has no schema_version; importing via cmd/migrate builds this SQLite shape directly.
 const currentSchemaVersion = 1
 
 // Schema creates all tables for the SQLite database
@@ -16,28 +18,22 @@ func createSchema(db *sql.DB) error {
 		updated_at INTEGER NOT NULL
 	);
 
-	-- Users table
+	-- Users: user_id is the primary key (stable identity); username is unique (one active login per name)
 	CREATE TABLE IF NOT EXISTS users (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		username TEXT UNIQUE NOT NULL,
-		perm_api BOOLEAN NOT NULL DEFAULT 0,
-		perm_admin BOOLEAN NOT NULL DEFAULT 0,
-		perm_modify BOOLEAN NOT NULL DEFAULT 0,
-		perm_share BOOLEAN NOT NULL DEFAULT 0,
-		perm_realtime BOOLEAN NOT NULL DEFAULT 0,
-		perm_delete BOOLEAN NOT NULL DEFAULT 0,
-		perm_create BOOLEAN NOT NULL DEFAULT 0,
-		perm_download BOOLEAN NOT NULL DEFAULT 1,
+		user_id TEXT PRIMARY KEY NOT NULL,
+		username TEXT NOT NULL UNIQUE,
+		perm_api INTEGER NOT NULL DEFAULT 0,
+		perm_admin INTEGER NOT NULL DEFAULT 0,
+		perm_realtime INTEGER NOT NULL DEFAULT 0,
 		user_data TEXT NOT NULL
 	);
-	CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 	CREATE INDEX IF NOT EXISTS idx_users_admin ON users(perm_admin);
 	CREATE INDEX IF NOT EXISTS idx_users_api ON users(perm_api);
 
-	-- Shares table
+	-- Shares (owner is user_id)
 	CREATE TABLE IF NOT EXISTS shares (
 		hash TEXT PRIMARY KEY,
-		user_id INTEGER NOT NULL,
+		user_id TEXT NOT NULL,
 		source TEXT NOT NULL,
 		path TEXT NOT NULL,
 		expire INTEGER NOT NULL DEFAULT 0,
@@ -80,10 +76,10 @@ func createSchema(db *sql.DB) error {
 		revoked_at INTEGER NOT NULL
 	);
 
-	-- Hashed tokens table
+	-- Hashed tokens (minimal JWT → owner user_id)
 	CREATE TABLE IF NOT EXISTS hashed_tokens (
 		token_hash TEXT PRIMARY KEY,
-		user_id INTEGER NOT NULL
+		user_id TEXT NOT NULL
 	);
 	CREATE INDEX IF NOT EXISTS idx_hashed_tokens_user_id ON hashed_tokens(user_id);
 
@@ -151,28 +147,32 @@ func getSchemaVersion(db *sql.DB) (int, error) {
 	return version, nil
 }
 
-// runMigrations applies any necessary schema migrations
 func runMigrations(db *sql.DB, fromVersion int) error {
-	// Future migrations would go here
-	// For now, we only have version 1
-	if fromVersion < currentSchemaVersion {
-		// Apply migrations sequentially
-		for v := fromVersion + 1; v <= currentSchemaVersion; v++ {
-			switch v {
-			case 1:
-				// Version 1 is the initial schema, already created
-				continue
-			default:
-				return fmt.Errorf("unknown schema version: %d", v)
-			}
-		}
-
-		// Update schema version
+	if fromVersion > currentSchemaVersion {
 		_, err := db.Exec("UPDATE schema_version SET version = ?, updated_at = ?",
 			currentSchemaVersion, currentTimestamp())
 		if err != nil {
-			return fmt.Errorf("failed to update schema version: %w", err)
+			return fmt.Errorf("failed to normalize schema version: %w", err)
 		}
+		return nil
+	}
+	if fromVersion >= currentSchemaVersion {
+		return nil
+	}
+
+	for v := fromVersion + 1; v <= currentSchemaVersion; v++ {
+		switch v {
+		case 1:
+			// Canonical schema is createSchema + Bolt import; no step migrations.
+		default:
+			return fmt.Errorf("unknown schema version: %d", v)
+		}
+	}
+
+	_, err := db.Exec("UPDATE schema_version SET version = ?, updated_at = ?",
+		currentSchemaVersion, currentTimestamp())
+	if err != nil {
+		return fmt.Errorf("failed to update schema version: %w", err)
 	}
 
 	return nil

@@ -50,9 +50,9 @@ func GetAllShares() ([]share.Link, error) {
 	return shares, nil
 }
 
-// GetSharesByUserID retrieves all non-expired shares for a user
+// GetSharesByUserID retrieves all non-expired shares owned by userID.
 // Returns values (not pointers) to prevent modifications to the cache
-func GetSharesByUserID(userID uint) ([]share.Link, error) {
+func GetSharesByUserID(userID uint64) ([]share.Link, error) {
 	sharesMux.RLock()
 	defer sharesMux.RUnlock()
 
@@ -262,8 +262,8 @@ func UpdateSharesPaths(oldSource, oldPath, newSource, newPath string) error {
 	return nil
 }
 
-// IsShared checks if a path is shared by a user
-func IsShared(source, path string, userID uint) bool {
+// IsShared checks if a path is shared by the given owner user id.
+func IsShared(source, path string, userID uint64) bool {
 	sharesMux.RLock()
 	defer sharesMux.RUnlock()
 

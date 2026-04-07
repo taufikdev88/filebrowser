@@ -18,15 +18,11 @@ type sqlStoreAdapter struct {
 	store *sqldb.SQLStore
 }
 
-func (s *sqlStoreAdapter) GetBy(id interface{}) (*users.User, error) {
-	switch v := id.(type) {
-	case string:
-		return s.store.GetUserByUsername(v)
-	case uint:
-		return s.store.GetUserByID(v)
-	default:
-		return nil, errors.ErrInvalidDataType
+func (s *sqlStoreAdapter) GetBy(id uint64) (*users.User, error) {
+	if id == 0 {
+		return nil, errors.ErrNotExist
 	}
+	return s.store.GetUserByID(id)
 }
 
 func (s *sqlStoreAdapter) Gets() ([]*users.User, error) {
@@ -38,6 +34,13 @@ func (s *sqlStoreAdapter) Save(user *users.User, changePass, disableScopeChange 
 	existingUser, err := s.store.GetUserByUsername(user.Username)
 	if err != nil {
 		// User doesn't exist - create new user
+		if user.ID == 0 {
+			nid, genErr := users.NextRandomUserID()
+			if genErr != nil {
+				return genErr
+			}
+			user.ID = nid
+		}
 		return s.store.CreateUser(user)
 	}
 	// User exists - update
@@ -49,12 +52,8 @@ func (s *sqlStoreAdapter) Update(user *users.User, adminActor bool, fields ...st
 	return s.store.UpdateUser(user)
 }
 
-func (s *sqlStoreAdapter) DeleteByID(id uint) error {
-	return s.store.DeleteUser(id)
-}
-
-func (s *sqlStoreAdapter) DeleteByUsername(username string) error {
-	return s.store.DeleteUserByUsername(username)
+func (s *sqlStoreAdapter) DeleteByID(id uint64) error {
+	return s.store.DeleteUserByID(id)
 }
 
 func createTestStorage(t *testing.T) (*access.Storage, *users.Storage) {

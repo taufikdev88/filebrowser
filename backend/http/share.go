@@ -25,11 +25,40 @@ import (
 	"github.com/gtsteffaniak/go-logger/logger"
 )
 
-// ShareResponse represents a share with computed username field and download URL
+// normalizeShareStoredPath returns the index-relative path to persist on a share: directories end
+// with '/', files do not. Verifies the path exists on the source (including when indexing is disabled).
+func normalizeShareStoredPath(idx *indexing.Index, indexPath string) (string, error) {
+	var probe string
+	if indexPath == "/" {
+		probe = "/"
+	} else {
+		probe = strings.TrimSuffix(indexPath, "/")
+	}
+	_, isDir, err := idx.GetRealPath(probe)
+	if err != nil {
+		tailed := utils.AddTrailingSlashIfNotExists(probe)
+		if tailed != probe {
+			_, isDir2, err2 := idx.GetRealPath(tailed)
+			if err2 == nil && isDir2 {
+				return tailed, nil
+			}
+		}
+		return "", err
+	}
+	if isDir {
+		return utils.AddTrailingSlashIfNotExists(probe), nil
+	}
+	if probe == "/" {
+		return "/", nil
+	}
+	return probe, nil
+}
+
+// ShareResponse represents a share with computed fields and download URL
 type ShareResponse struct {
 	*share.Link
-	Source     string `json:"source"` // Override embedded field to show source name
-	Username   string `json:"username,omitempty"`
+	Username   string `json:"username,omitempty"` // owner login (resolved from UserID)
+	Source     string `json:"source"`             // Override embedded field to show source name
 	PathExists bool   `json:"pathExists"`
 }
 
@@ -37,13 +66,6 @@ type ShareResponse struct {
 func convertToFrontendShareResponse(r *http.Request, shares []*share.Link, user *users.User) ([]*ShareResponse, error) {
 	responses := make([]*ShareResponse, 0, len(shares))
 	for _, s := range shares {
-		// Look for the username of the user who created the share
-		creator, err := usersStore.Get(s.UserID)
-		username := ""
-		if err == nil {
-			username = creator.Username
-		}
-
 		// Get source info to convert path to name for frontend
 		sourceInfo, ok := config.Server.SourceMap[s.Source]
 		if !ok {
@@ -63,11 +85,15 @@ func convertToFrontendShareResponse(r *http.Request, shares []*share.Link, user 
 		if s.UserCanEdit(user) {
 			s.CommonShare.SourceURL = s.SourceURL(user)
 		}
+		owner := ""
+		if u, err := state.GetUser(s.UserID); err == nil {
+			owner = u.Username
+		}
 		// Create response with source name (overrides the embedded Link's source field)
 		responses = append(responses, &ShareResponse{
 			Link:       s,
+			Username:   owner,
 			Source:     sourceInfo.Name, // Override to show source name instead of backend path
-			Username:   username,
 			PathExists: pathExists,
 		})
 	}
@@ -139,7 +165,15 @@ func shareGetHandler(w http.ResponseWriter, r *http.Request, d *requestContext) 
 		return http.StatusForbidden, err
 	}
 	scopePath := utils.JoinPathAsUnix(userscope, path)
-	scopePath = utils.AddTrailingSlashIfNotExists(scopePath)
+	idx := indexing.GetIndex(sourceInfo.Name)
+	if idx == nil {
+		return http.StatusBadRequest, fmt.Errorf("index not found for source: %s", sourceName)
+	}
+	var normErr error
+	scopePath, normErr = normalizeShareStoredPath(idx, scopePath)
+	if normErr != nil {
+		return renderJSON(w, r, []*ShareResponse{})
+	}
 
 	// Debug: show what we're querying for
 	logger.Debug("shareGetHandler querying", "sourceName", sourceName, "sourceInfoPath", sourceInfo.Path, "scopePath", scopePath, "userID", d.user.ID)
@@ -183,7 +217,7 @@ func shareDeleteHandler(w http.ResponseWriter, r *http.Request, d *requestContex
 	if err != nil {
 		return http.StatusBadRequest, fmt.Errorf("share not found")
 	}
-	if thisShare.UserID != d.user.ID && !d.user.Permissions.Admin {
+	if !thisShare.UserCanEdit(d.user) {
 		return http.StatusForbidden, fmt.Errorf("you are not allowed to delete this share")
 	}
 
@@ -226,7 +260,7 @@ func sharePatchHandler(w http.ResponseWriter, r *http.Request, d *requestContext
 	if err != nil {
 		return http.StatusBadRequest, fmt.Errorf("share not found")
 	}
-	if thisShare.UserID != d.user.ID && !d.user.Permissions.Admin {
+	if !thisShare.UserCanEdit(d.user) {
 		return http.StatusForbidden, fmt.Errorf("you are not allowed to update this share")
 	}
 	// Update the share path
@@ -372,22 +406,11 @@ func sharePostHandler(w http.ResponseWriter, r *http.Request, d *requestContext)
 			return http.StatusInternalServerError, err3
 		}
 
-		// Convert to ShareResponse format with username
-		var user *users.User
-		var userValue users.User
-		userValue, err = state.GetUser(updatedShare.UserID)
-		if err == nil {
-			user = &userValue
+		out, errConv := convertToFrontendShareResponse(r, []*share.Link{updatedShare}, d.user)
+		if errConv != nil {
+			return http.StatusInternalServerError, errConv
 		}
-		username := ""
-		if err == nil {
-			username = user.Username
-		}
-		response := &ShareResponse{
-			Link:     updatedShare,
-			Username: username,
-		}
-		return renderJSON(w, r, response)
+		return renderJSON(w, r, out[0])
 	}
 
 	source, ok := config.Server.NameToSource[body.Source]
@@ -422,9 +445,7 @@ func sharePostHandler(w http.ResponseWriter, r *http.Request, d *requestContext)
 	}
 
 	body.Path = utils.JoinPathAsUnix(userscope, cleanPath)
-	body.Path = utils.AddTrailingSlashIfNotExists(body.Path)
-	// validate path exists as file or folder
-	_, _, err = idx.GetRealPath(body.Path)
+	body.Path, err = normalizeShareStoredPath(idx, body.Path)
 	if err != nil {
 		return http.StatusForbidden, fmt.Errorf("path not found: %s", providedPath)
 	}
@@ -557,8 +578,12 @@ func shareDirectDownloadHandler(w http.ResponseWriter, r *http.Request, d *reque
 		return http.StatusInternalServerError, err
 	}
 
-	// Create the scope path
+	// Create the scope path (file: no trailing slash; matches share cache normalization)
 	scopePath := utils.JoinPathAsUnix(userscope, path)
+	scopePath, err = normalizeShareStoredPath(idx, scopePath)
+	if err != nil {
+		return http.StatusBadRequest, fmt.Errorf("path not found: %s", path)
+	}
 
 	// Check if an existing share already matches these parameters
 	existingShares, err := shareStore.Gets(scopePath, sourceInfo.Path, d.user.ID)

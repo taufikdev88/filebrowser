@@ -8,23 +8,15 @@ import (
 // usersBackend implements users.StorageBackend using state
 type usersBackend struct{}
 
-func (u usersBackend) GetBy(id interface{}) (*users.User, error) {
-	switch v := id.(type) {
-	case string:
-		user, err := GetUserByUsername(v)
-		if err != nil {
-			return nil, err
-		}
-		return &user, nil
-	case uint:
-		user, err := GetUser(v)
-		if err != nil {
-			return nil, err
-		}
-		return &user, nil
-	default:
-		return nil, errors.ErrInvalidDataType
+func (u usersBackend) GetBy(id uint64) (*users.User, error) {
+	if id == 0 {
+		return nil, errors.ErrNotExist
 	}
+	user, err := GetUser(id)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (u usersBackend) Gets() ([]*users.User, error) {
@@ -68,10 +60,7 @@ func (u usersBackend) Update(user *users.User, adminActor bool, fields ...string
 	return UpdateUser(user, "", fields...)
 }
 
-func (u usersBackend) DeleteByID(id uint) error {
+func (u usersBackend) DeleteByID(id uint64) error {
 	return DeleteUser(id)
 }
 
-func (u usersBackend) DeleteByUsername(username string) error {
-	return DeleteUserByUsername(username)
-}

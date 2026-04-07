@@ -156,7 +156,7 @@ func TestPublicShareHandlerAuthentication(t *testing.T) {
 
 	const passwordBcrypt = "$2y$10$TFAmdCbyd/mEZDe5fUeZJu.MaJQXRTwdqb/IQV.eTn6dWrF58gCSe" // bcrypt hashed password
 
-	// Create and save a dummy user with ID 1 (all shares use UserID: 1)
+	// Create and save a dummy user (shares reference owner by UserID)
 	dummyUser := &users.User{
 		ID:          1,
 		Username:    "testuser",

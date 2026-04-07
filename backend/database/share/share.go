@@ -57,10 +57,11 @@ type CreateBody struct {
 // Link is the information needed to build a shareable link.
 type Link struct {
 	CommonShare
-	Downloads    int    `json:"downloads"`
-	Hash         string `json:"hash" storm:"id,index"`
-	UserID       uint   `json:"userID"`
-	Expire       int64  `json:"expire"`
+	Downloads int    `json:"downloads"`
+	Hash string `json:"hash" storm:"id,index"`
+	// UserID is the share owner's stable id (same as users.User.ID); not the login name.
+	UserID uint64 `json:"userID"`
+	Expire int64 `json:"expire"`
 	PasswordHash string `json:"password_hash,omitempty"`
 	// Token is a random value that will only be set when PasswordHash is set. It is
 	// URL-Safe and is used to download links in password-protected shares via a

@@ -67,7 +67,7 @@ type Storage struct {
 	AllRules      SourceRuleMap       // AllRules[sourcePath][indexPath] - in-memory authoritative state
 	Groups        GroupMap            // key: group name, value: set of usernames - in-memory authoritative state
 	RevokedTokens map[string]struct{} // set of revoked token hashes - in-memory authoritative state
-	HashedTokens  map[string]uint     // maps token hash → user ID - in-memory authoritative state
+	HashedTokens  map[string]uint64   // maps token hash → owner user id - in-memory authoritative state
 	Users         *users.Storage      // Reference to users storage
 	sqlStore      SQLPersister        // SQL store for persistence
 }
@@ -79,8 +79,9 @@ type SQLPersister interface {
 	SaveGroup(name string, members StringSet) error
 	DeleteGroup(name string) error
 	SaveRevokedToken(tokenHash string) error
-	SaveHashedToken(tokenHash string, userID uint) error
+	SaveHashedToken(tokenHash string, userID uint64) error
 	DeleteHashedToken(tokenHash string) error
+	DeleteHashedTokensByUserID(userID uint64) error
 }
 
 // SetSQLStore sets the SQL store for persistence operations
@@ -100,7 +101,7 @@ func NewStorage(usersStore *users.Storage) *Storage {
 		AllRules:      make(SourceRuleMap),
 		Groups:        make(GroupMap),
 		RevokedTokens: make(map[string]struct{}),
-		HashedTokens:  make(map[string]uint),
+		HashedTokens:  make(map[string]uint64),
 		Users:         usersStore,
 	}
 	return s
@@ -164,13 +165,8 @@ func (s *Storage) getOrCreateRuleNL(sourcePath, indexPath string) *AccessRule {
 }
 
 // DenyUser adds a user to the deny list for a given source and index path.
+// Rules are keyed by login name (username), not user id; names are not resolved against user storage.
 func (s *Storage) DenyUser(sourcePath, indexPath, username string) error {
-	if s.Users != nil {
-		_, err := s.Users.Get(username)
-		if err != nil {
-			return fmt.Errorf("user '%s' does not exist: %w", username, err)
-		}
-	}
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	rule := s.getOrCreateRuleNL(sourcePath, indexPath)
@@ -183,13 +179,8 @@ func (s *Storage) DenyUser(sourcePath, indexPath, username string) error {
 }
 
 // AllowUser adds a user to the allow list for a given source and index path.
+// Rules are keyed by login name (username), not user id; names are not resolved against user storage.
 func (s *Storage) AllowUser(sourcePath, indexPath, username string) error {
-	if s.Users != nil {
-		_, err := s.Users.Get(username)
-		if err != nil {
-			return fmt.Errorf("user '%s' does not exist: %w", username, err)
-		}
-	}
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	rule := s.getOrCreateRuleNL(sourcePath, indexPath)
@@ -1194,13 +1185,16 @@ func (s *Storage) UpdateRulePath(sourcePath, oldPath, newPath string) error {
 
 // RevokeToken adds a token hash to the revoked list and persists to DB.
 func (s *Storage) RevokeToken(tokenHash string) error {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-
 	tokenHash = utils.HashSHA256(tokenHash)
+	s.mux.Lock()
 	s.RevokedTokens[tokenHash] = struct{}{}
-	// Also remove from HashedTokens to prevent future lookups
 	delete(s.HashedTokens, tokenHash)
+	sqlStore := s.sqlStore
+	s.mux.Unlock()
+
+	if sqlStore != nil {
+		_ = sqlStore.DeleteHashedToken(tokenHash)
+	}
 	return nil
 }
 
@@ -1213,22 +1207,26 @@ func (s *Storage) IsTokenRevoked(tokenHash string) bool {
 	return exists
 }
 
-// AddHashedToken adds a token hash to user ID mapping.
-func (s *Storage) AddApiToken(tokenString string, userID uint) error {
-	s.mux.Lock()
-	defer s.mux.Unlock()
+// AddApiToken maps a token string hash to an owner user id (for minimal JWTs).
+func (s *Storage) AddApiToken(tokenString string, userID uint64) error {
 	tokenHash := utils.HashSHA256(tokenString)
+	s.mux.Lock()
 	s.HashedTokens[tokenHash] = userID
+	sqlStore := s.sqlStore
+	s.mux.Unlock()
+	if sqlStore != nil {
+		return sqlStore.SaveHashedToken(tokenHash, userID)
+	}
 	return nil
 }
 
-// GetUserIDFromToken retrieves the user ID for a given token string (memory-only read).
-func (s *Storage) GetUserIDFromToken(tokenString string) (uint, bool) {
+// GetUserIDFromToken retrieves the owner user id for a given token string (memory read; SQL populated at startup).
+func (s *Storage) GetUserIDFromToken(tokenString string) (uint64, bool) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 	tokenHash := utils.HashSHA256(tokenString)
-	userID, exists := s.HashedTokens[tokenHash]
-	return userID, exists
+	uid, exists := s.HashedTokens[tokenHash]
+	return uid, exists
 }
 
 // GetRevokedTokens returns a copy of all revoked token hashes.
@@ -1245,9 +1243,33 @@ func (s *Storage) GetRevokedTokens() map[string]struct{} {
 
 // RemoveApiToken removes a token hash mapping (used when deleting API keys).
 func (s *Storage) RemoveApiToken(tokenString string) error {
-	s.mux.Lock()
-	defer s.mux.Unlock()
 	tokenHash := utils.HashSHA256(tokenString)
+	s.mux.Lock()
 	delete(s.HashedTokens, tokenHash)
+	sqlStore := s.sqlStore
+	s.mux.Unlock()
+	if sqlStore != nil {
+		return sqlStore.DeleteHashedToken(tokenHash)
+	}
+	return nil
+}
+
+// RemoveHashedTokensForUser removes every minimal-JWT hash → user id mapping for that owner.
+// Call when deleting a user so recycled usernames never resolve leftover token hashes to a new id.
+func (s *Storage) RemoveHashedTokensForUser(userID uint64) error {
+	if userID == 0 {
+		return nil
+	}
+	s.mux.Lock()
+	for hash, uid := range s.HashedTokens {
+		if uid == userID {
+			delete(s.HashedTokens, hash)
+		}
+	}
+	sqlStore := s.sqlStore
+	s.mux.Unlock()
+	if sqlStore != nil {
+		return sqlStore.DeleteHashedTokensByUserID(userID)
+	}
 	return nil
 }
