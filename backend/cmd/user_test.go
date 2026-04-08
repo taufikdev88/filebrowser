@@ -38,7 +38,7 @@ func TestUpdateUserScopes_Phases(t *testing.T) {
 		{
 			name: "Single valid scope",
 			user: &users.User{
-				Scopes: []users.SourceScope{
+				BackendScopes: []users.SourceScope{
 					{Scope: "/home", Name: "/pathA"},
 				},
 			},
@@ -54,7 +54,7 @@ func TestUpdateUserScopes_Phases(t *testing.T) {
 		{
 			name: "Single empty scope path",
 			user: &users.User{
-				Scopes: []users.SourceScope{
+				BackendScopes: []users.SourceScope{
 					{Scope: "", Name: "/pathB"},
 				},
 			},
@@ -69,8 +69,8 @@ func TestUpdateUserScopes_Phases(t *testing.T) {
 		{
 			name: "Two scopes, one includes username in path",
 			user: &users.User{
-				Username: "user123",
-				Scopes: []users.SourceScope{
+				FrontendUser: users.FrontendUser{Username: "user123"},
+				BackendScopes: []users.SourceScope{
 					{Scope: "/home/user123", Name: "/pathA"},
 					{Scope: "/data", Name: "/pathB"},
 				},
@@ -87,7 +87,7 @@ func TestUpdateUserScopes_Phases(t *testing.T) {
 		{
 			name: "Two scopes, one with empty name",
 			user: &users.User{
-				Scopes: []users.SourceScope{
+				BackendScopes: []users.SourceScope{
 					{Scope: "/home", Name: "/pathB"},
 					{Scope: "/data", Name: "/somethingElse"},
 				},
@@ -105,7 +105,7 @@ func TestUpdateUserScopes_Phases(t *testing.T) {
 		{
 			name: "No scopes at all",
 			user: &users.User{
-				Scopes: []users.SourceScope{},
+				BackendScopes: []users.SourceScope{},
 			},
 			expectedPhase1: []users.SourceScope{
 				{Scope: "/defaultB", Name: "/pathB"},
@@ -118,8 +118,8 @@ func TestUpdateUserScopes_Phases(t *testing.T) {
 		{
 			name: "All user Scope and source change",
 			user: &users.User{
-				Username: "user123",
-				Scopes: []users.SourceScope{
+				FrontendUser: users.FrontendUser{Username: "user123"},
+				BackendScopes: []users.SourceScope{
 					{Scope: "/defaultC/user123", Name: "/pathC"},
 					{Scope: "/defaultA/user123", Name: "/pathA"},
 					{Scope: "/defaultB/user123", Name: "/pathB"},
@@ -143,10 +143,10 @@ func TestUpdateUserScopes_Phases(t *testing.T) {
 	// ---------------------
 	for _, tc := range testCases {
 		t.Run(tc.name+"_Phase1", func(t *testing.T) {
-			originalScopes := tc.user.Scopes
+			originalScopes := tc.user.BackendScopes
 			updated := updateUserScopes(tc.user)
-			assert.Equal(t, tc.expectedPhase1, tc.user.Scopes, "Phase1 scope mismatch for test case: %s", tc.name)
-			assert.Equal(t, updated, !reflect.DeepEqual(originalScopes, tc.user.Scopes), "Phase2 scope change detection failed:\t %s vs expected:\t %s", tc.user.Scopes, tc.expectedPhase1)
+			assert.Equal(t, tc.expectedPhase1, tc.user.BackendScopes, "Phase1 scope mismatch for test case: %s", tc.name)
+			assert.Equal(t, updated, !reflect.DeepEqual(originalScopes, tc.user.BackendScopes), "Phase2 scope change detection failed:\t %s vs expected:\t %s", tc.user.BackendScopes, tc.expectedPhase1)
 		})
 	}
 
@@ -171,10 +171,10 @@ func TestUpdateUserScopes_Phases(t *testing.T) {
 	// Run again without resetting user objects to test idempotency + renaming
 	for _, tc := range testCases {
 		t.Run(tc.name+"_Phase2", func(t *testing.T) {
-			originalScopes := tc.user.Scopes
+			originalScopes := tc.user.BackendScopes
 			updated := updateUserScopes(tc.user)
-			assert.Equal(t, tc.expectedPhase2, tc.user.Scopes, "Phase2 scope mismatch for test case: %s", tc.name)
-			assert.Equal(t, updated, !reflect.DeepEqual(originalScopes, tc.user.Scopes), "Phase2 scope change detection failed:\t %s vs expected:\t %s", tc.user.Scopes, tc.expectedPhase1)
+			assert.Equal(t, tc.expectedPhase2, tc.user.BackendScopes, "Phase2 scope mismatch for test case: %s", tc.name)
+			assert.Equal(t, updated, !reflect.DeepEqual(originalScopes, tc.user.BackendScopes), "Phase2 scope change detection failed:\t %s vs expected:\t %s", tc.user.BackendScopes, tc.expectedPhase1)
 
 		})
 	}

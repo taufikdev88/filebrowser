@@ -79,7 +79,7 @@ func updateUserScopes(user *users.User) bool {
 
 	// Build map for existing scopes by Name
 	existing := make(map[string]users.SourceScope)
-	for _, s := range user.Scopes {
+	for _, s := range user.BackendScopes {
 		existing[s.Name] = s
 	}
 
@@ -105,13 +105,13 @@ func updateUserScopes(user *users.User) bool {
 	}
 
 	// Preserve user-defined scopes not matching current sources, append to end
-	for _, s := range user.Scopes {
+	for _, s := range user.BackendScopes {
 		if _, ok := seen[s.Name]; !ok {
 			newScopes = append(newScopes, s)
 		}
 	}
-	changed := !reflect.DeepEqual(user.Scopes, newScopes)
-	user.Scopes = newScopes
+	changed := !reflect.DeepEqual(user.BackendScopes, newScopes)
+	user.BackendScopes = newScopes
 	return changed
 }
 
@@ -232,7 +232,7 @@ func updateSidebarLinks(user *users.User) bool {
 		}
 
 		// Add new source links based on user's scopes
-		for _, scope := range user.Scopes {
+		for _, scope := range user.BackendScopes {
 			if source, ok := settings.Config.Server.SourceMap[scope.Name]; ok {
 				// User has access to this source, add it to sidebar
 				newLinks = append(newLinks, users.SidebarLink{

@@ -77,7 +77,7 @@ func (u *User) GetFrontendScopes() []SourceScope {
 	}
 
 	newScopes := []SourceScope{}
-	for _, scope := range u.Scopes {
+	for _, scope := range u.BackendScopes {
 		if source, ok := sourceConfig.GetSourceByPath(scope.Name); ok {
 			// Replace scope.Name with source.Name while keeping the same Scope value
 			newScopes = append(newScopes, SourceScope{

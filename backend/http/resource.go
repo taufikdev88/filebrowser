@@ -23,6 +23,7 @@ import (
 	"github.com/gtsteffaniak/filebrowser/backend/indexing"
 	"github.com/gtsteffaniak/filebrowser/backend/indexing/iteminfo"
 	"github.com/gtsteffaniak/filebrowser/backend/preview"
+	"github.com/gtsteffaniak/filebrowser/backend/state"
 	"github.com/gtsteffaniak/go-cache/cache"
 	"github.com/gtsteffaniak/go-logger/logger"
 )
@@ -39,6 +40,30 @@ func pauseUploadCacheKey(source, path string) string {
 
 func publicPauseUploadCacheKey(shareHash, source, indexPath string) string {
 	return shareHash + pauseCacheKeySep + source + pauseCacheKeySep + indexPath
+}
+
+// reconcileSharesAfterMove updates authoritative share rows in state after a filesystem move, then
+// evicts share.Storage cache entries so reads reload from state/SQL.
+func reconcileSharesAfterMove(isSrcDir bool, sourceIndex, destIndex, realsrc, realdst string) {
+	srcIdx := indexing.GetIndex(sourceIndex)
+	dstIdx := indexing.GetIndex(destIndex)
+	if srcIdx == nil || dstIdx == nil {
+		logger.Errorf("reconcile shares after move: missing index src=%s dst=%s", sourceIndex, destIndex)
+		return
+	}
+	hashes, err := state.UpdateSharesForMovedResource(
+		srcIdx.Path,
+		srcIdx.MakeIndexPath(realsrc, isSrcDir),
+		dstIdx.Path,
+		dstIdx.MakeIndexPath(realdst, isSrcDir),
+	)
+	if err != nil {
+		logger.Errorf("reconcile shares after move: %v", err)
+		return
+	}
+	for _, h := range hashes {
+		shareStore.ForgetShare(h)
+	}
 }
 
 // validateMoveOperation checks if a move/rename operation is valid at the HTTP level
@@ -224,11 +249,11 @@ type MoveCopyResponse struct {
 // @Router /api/resources/bulk [delete]
 func resourceBulkDeleteHandler(w http.ResponseWriter, r *http.Request, d *requestContext) (int, error) {
 	filePermUser := d.user
-	if d.share != nil {
+	if d.share.Hash != "" {
 		filePermUser = d.shareUser
 	}
 	// Check permissions - either user delete permission or share delete permission
-	if d.share == nil {
+	if d.share.Hash == "" {
 		if !d.user.Permissions.Delete {
 			return http.StatusForbidden, fmt.Errorf("user is not allowed to delete")
 		}
@@ -271,7 +296,7 @@ func resourceBulkDeleteHandler(w http.ResponseWriter, r *http.Request, d *reques
 			continue
 		}
 
-		if d.share != nil {
+		if d.share.Hash != "" {
 			sourceName := d.share.GetSourceName()
 			if sourceName == "" {
 				return http.StatusNotFound, fmt.Errorf("source not available")
@@ -398,7 +423,7 @@ func resourceBulkDeleteHandler(w http.ResponseWriter, r *http.Request, d *reques
 // @Failure 404 {object} map[string]string "Source not found"
 // @Router /api/resources/pause [post]
 func resourcePauseHandler(w http.ResponseWriter, r *http.Request, d *requestContext) (int, error) {
-	if d.share != nil {
+	if d.share.Hash != "" {
 		return http.StatusBadRequest, fmt.Errorf("use public pause endpoint for share uploads")
 	}
 	if !d.user.Permissions.Create {
@@ -478,11 +503,11 @@ func resourcePostHandler(w http.ResponseWriter, r *http.Request, d *requestConte
 	}
 	path = cleanPath
 
-	if d.share == nil && !d.user.Permissions.Create {
+	if d.share.Hash == "" && !d.user.Permissions.Create {
 		return http.StatusForbidden, fmt.Errorf("user is not allowed to create or modify")
 	}
 	filePermUser := d.user
-	if d.share != nil {
+	if d.share.Hash != "" {
 		filePermUser = d.shareUser
 	}
 	isDir := r.URL.Query().Get("isDir") == "true"
@@ -618,7 +643,7 @@ func resourcePostHandler(w http.ResponseWriter, r *http.Request, d *requestConte
 			_ = outFile.Sync()
 
 			gracefulPause := false
-			if d.share != nil {
+			if d.share.Hash != "" {
 				k := publicPauseUploadCacheKey(d.share.Hash, source, path)
 				if _, ok := publicPauseCache.Get(k); ok {
 					gracefulPause = true
@@ -644,11 +669,12 @@ func resourcePostHandler(w http.ResponseWriter, r *http.Request, d *requestConte
 			// close file before moving
 			outFile.Close()
 			// Move the completed file from the temp location to the final destination
-			err = files.MoveResource(false, source, source, tempFilePath, realPath, shareStore, accessStore)
+			err = files.MoveResource(false, source, source, tempFilePath, realPath, accessStore)
 			if err != nil {
 				logger.Debugf("could not move file from %v to %v: %v", tempFilePath, realPath, err)
 				return http.StatusInternalServerError, fmt.Errorf("could not move file from chunked folder to destination: %v", err)
 			}
+			reconcileSharesAfterMove(false, source, source, tempFilePath, realPath)
 		}
 		return http.StatusOK, nil
 	}
@@ -737,7 +763,7 @@ func resourcePutHandler(w http.ResponseWriter, r *http.Request, d *requestContex
 // @Failure 500 {object} MoveCopyResponse "All operations failed"
 // @Router /api/resources [patch]
 func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestContext) (int, error) {
-	if !d.user.Permissions.Modify && d.share == nil {
+	if !d.user.Permissions.Modify && d.share.Hash == "" {
 		return http.StatusForbidden, fmt.Errorf("user is not allowed to create or modify")
 	}
 
@@ -768,7 +794,7 @@ func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 		// Validate all fields are provided
 		if item.FromSource == "" || item.FromPath == "" || item.ToSource == "" || item.ToPath == "" {
 			item.Message = "fromSource, fromPath, toSource, and toPath are required"
-			if d.share != nil {
+			if d.share.Hash != "" {
 				response.Failed = append(response.Failed, MoveCopyItem{
 					Message: item.Message,
 				})
@@ -796,7 +822,7 @@ func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 		// For shares, paths are already absolute, so use empty scope
 		userscopeSrc := ""
 		userscopeDst := ""
-		if d.share == nil {
+		if d.share.Hash == "" {
 			userscopeSrc, err = d.user.GetScopeForSourceName(item.FromSource)
 			if err != nil {
 				item.Message = "source not available"
@@ -815,7 +841,7 @@ func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 		srcIdx := indexing.GetIndex(item.FromSource)
 		if srcIdx == nil {
 			item.Message = "source not found"
-			if d.share != nil {
+			if d.share.Hash != "" {
 				response.Failed = append(response.Failed, MoveCopyItem{
 					Message: item.Message,
 				})
@@ -829,7 +855,7 @@ func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 		dstIdx := indexing.GetIndex(item.ToSource)
 		if dstIdx == nil {
 			item.Message = "destination source not found"
-			if d.share != nil {
+			if d.share.Hash != "" {
 				response.Failed = append(response.Failed, MoveCopyItem{
 					Message: item.Message,
 				})
@@ -851,7 +877,7 @@ func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 		// Check access control for both source and destination paths
 		if !accessStore.Permitted(srcIdx.Path, fullSrcIndexPath, d.user.Username) {
 			item.Message = "access denied to source path"
-			if d.share != nil {
+			if d.share.Hash != "" {
 				response.Failed = append(response.Failed, MoveCopyItem{
 					Message: item.Message,
 				})
@@ -862,7 +888,7 @@ func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 		}
 		if !accessStore.Permitted(dstIdx.Path, fullDstIndexPath, d.user.Username) {
 			item.Message = "access denied to destination path"
-			if d.share != nil {
+			if d.share.Hash != "" {
 				response.Failed = append(response.Failed, MoveCopyItem{
 					Message: item.Message,
 				})
@@ -879,7 +905,7 @@ func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 		if err != nil {
 			logger.Errorf("could not resolve source path: %v, item.FromPath: %v", err, item.FromPath)
 			item.Message = "could not resolve source path"
-			if d.share != nil {
+			if d.share.Hash != "" {
 				response.Failed = append(response.Failed, MoveCopyItem{
 					Message: item.Message,
 				})
@@ -895,7 +921,7 @@ func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 		parentDir, _, err := dstIdx.GetRealPath(fullDstParentPath)
 		if err != nil {
 			item.Message = "destination directory does not exist"
-			if d.share != nil {
+			if d.share.Hash != "" {
 				response.Failed = append(response.Failed, MoveCopyItem{
 					Message: item.Message,
 				})
@@ -915,7 +941,7 @@ func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 		if req.Action == "rename" || req.Action == "move" {
 			if err = validateMoveOperation(realSrc, realDest, isSrcDir); err != nil {
 				item.Message = "invalid move operation, circular reference"
-				if d.share != nil {
+				if d.share.Hash != "" {
 					response.Failed = append(response.Failed, MoveCopyItem{
 						Message: item.Message,
 					})
@@ -938,7 +964,7 @@ func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 		})
 		if err != nil {
 			logger.Errorf("Could not run patch action. src=%v dst=%v err=%v", realSrc, realDest, err)
-			if d.share != nil {
+			if d.share.Hash != "" {
 				item.Message = "could not run patch action"
 				response.Failed = append(response.Failed, MoveCopyItem{
 					Message: item.Message,
@@ -961,7 +987,7 @@ func resourcePatchHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 	}
 
 	// For shares, sanitize the response to only include messages (hide paths)
-	if d.share != nil {
+	if d.share.Hash != "" {
 		sanitizedFailed := make([]MoveCopyItem, len(response.Failed))
 		for i, item := range response.Failed {
 			sanitizedFailed[i] = MoveCopyItem{
@@ -1043,7 +1069,12 @@ func patchAction(ctx context.Context, params patchActionParams) error {
 
 		// delete thumbnails
 		preview.DelThumbs(ctx, *fileInfo)
-		return files.MoveResource(params.isSrcDir, params.srcIndex, params.dstIndex, params.src, params.dst, shareStore, accessStore)
+		err = files.MoveResource(params.isSrcDir, params.srcIndex, params.dstIndex, params.src, params.dst, accessStore)
+		if err != nil {
+			return err
+		}
+		reconcileSharesAfterMove(params.isSrcDir, params.srcIndex, params.dstIndex, params.src, params.dst)
+		return nil
 	default:
 		return fmt.Errorf("unsupported action %s: %w", params.action, errors.ErrInvalidRequestParams)
 	}

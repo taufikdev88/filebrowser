@@ -13,7 +13,7 @@ import (
 
 // IsSingleFileShare determines if this share is for a single file (not a directory).
 // It checks both the file extension and filesystem to determine if the path points to a file.
-func (l *Link) IsSingleFileShare() bool {
+func (l *Share) IsSingleFileShare() bool {
 	if l.Path == "" {
 		return false
 	}
@@ -30,7 +30,7 @@ func (l *Link) IsSingleFileShare() bool {
 }
 
 // isFileOnFilesystem checks if the path exists and is a file on the filesystem
-func (l *Link) isFileOnFilesystem() bool {
+func (l *Share) isFileOnFilesystem() bool {
 	// Construct the full path using Source and Path
 	fullPath := l.Path
 	if l.Source != "" {
@@ -48,7 +48,7 @@ func (l *Link) isFileOnFilesystem() bool {
 }
 
 // isDirectoryOnFilesystem checks if the path exists and is a directory on the filesystem
-func (l *Link) isDirectoryOnFilesystem() bool {
+func (l *Share) isDirectoryOnFilesystem() bool {
 	// Construct the full path using Source and Path
 	fullPath := l.Path
 	if l.Source != "" {
@@ -66,7 +66,7 @@ func (l *Link) isDirectoryOnFilesystem() bool {
 }
 
 // IsExpired checks if the share has expired based on the Expire timestamp
-func (l *Link) IsExpired() bool {
+func (l *Share) IsExpired() bool {
 	if l.Expire == 0 {
 		return false // No expiration set
 	}
@@ -76,17 +76,17 @@ func (l *Link) IsExpired() bool {
 }
 
 // HasPassword checks if the share is password protected
-func (l *Link) HasPassword() bool {
-	return l.PasswordHash != ""
+func (l *Share) HasPassword() bool {
+	return l.Password != ""
 }
 
 // IsPermanent checks if the share is permanent (no expiration)
-func (l *Link) IsPermanent() bool {
+func (l *Share) IsPermanent() bool {
 	return l.Expire == 0
 }
 
 // GetFileExtension returns the file extension of the shared file
-func (l *Link) GetFileExtension() string {
+func (l *Share) GetFileExtension() string {
 	if l.Path == "" {
 		return ""
 	}
@@ -94,7 +94,7 @@ func (l *Link) GetFileExtension() string {
 }
 
 // GetFileName returns just the filename (without path) of the shared item
-func (l *Link) GetFileName() string {
+func (l *Share) GetFileName() string {
 	if l.Path == "" {
 		return ""
 	}
@@ -102,7 +102,7 @@ func (l *Link) GetFileName() string {
 }
 
 // InitUserDownloads initializes the user downloads map if needed
-func (l *Link) InitUserDownloads() {
+func (l *Share) InitUserDownloads() {
 	// Note: This should be called within a lock at the state package level
 	if l.UserDownloads == nil {
 		l.UserDownloads = make(map[string]int)
@@ -110,7 +110,7 @@ func (l *Link) InitUserDownloads() {
 }
 
 // IncrementUserDownload increments the download count for a specific user
-func (l *Link) IncrementUserDownload(username string) {
+func (l *Share) IncrementUserDownload(username string) {
 	// Note: This should be called within a lock at the state package level
 	if l.UserDownloads == nil {
 		l.UserDownloads = make(map[string]int)
@@ -119,7 +119,7 @@ func (l *Link) IncrementUserDownload(username string) {
 }
 
 // GetUserDownloadCount returns the download count for a specific user
-func (l *Link) GetUserDownloadCount(username string) int {
+func (l *Share) GetUserDownloadCount(username string) int {
 	// Note: This should be called within a lock at the state package level
 	if l.UserDownloads == nil {
 		return 0
@@ -128,14 +128,14 @@ func (l *Link) GetUserDownloadCount(username string) int {
 }
 
 // ResetDownloadCounts resets both global and per-user download counts
-func (l *Link) ResetDownloadCounts() {
+func (l *Share) ResetDownloadCounts() {
 	// Note: This should be called within a lock at the state package level
 	l.Downloads = 0
 	l.UserDownloads = make(map[string]int)
 }
 
 // HasReachedUserLimit checks if a user has reached their download limit
-func (l *Link) HasReachedUserLimit(username string) bool {
+func (l *Share) HasReachedUserLimit(username string) bool {
 	if !l.PerUserDownloadLimit || l.DownloadsLimit == 0 {
 		return false
 	}
@@ -143,7 +143,7 @@ func (l *Link) HasReachedUserLimit(username string) bool {
 	return count >= l.DownloadsLimit
 }
 
-func (l *Link) GetSourceName() string {
+func (l *Share) GetSourceName() string {
 	sourceInfo, ok := settings.Config.Server.SourceMap[l.Source]
 	if !ok {
 		return ""
@@ -151,14 +151,14 @@ func (l *Link) GetSourceName() string {
 	return sourceInfo.Name
 }
 
-func (l *Link) UserCanEdit(user *users.User) bool {
+func (l *Share) UserCanEdit(user *users.User) bool {
 	if user.Permissions.Admin {
 		return true
 	}
 	return l.UserID != 0 && l.UserID == user.ID
 }
 
-func (l *Link) SourceURL(user *users.User) string {
+func (l *Share) SourceURL(user *users.User) string {
 	sourceName := l.GetSourceName()
 	// get user scope path from share
 	userScope, err := user.GetScopeForSourceName(sourceName)
@@ -172,7 +172,7 @@ func (l *Link) SourceURL(user *users.User) string {
 	return "/" + filepath.Join("files", sourceName, scopedPath)
 }
 
-func (l *Link) BannerURL() string {
+func (l *Share) BannerURL() string {
 	_, _, err := l.GetShareImagePartsHelper(true)
 	if err == nil {
 		return fmt.Sprintf("%s%spublic/api/share/image?banner=true&hash=%s", settings.Config.Server.ExternalUrl, settings.Config.Server.BaseURL, l.Hash)
@@ -180,7 +180,7 @@ func (l *Link) BannerURL() string {
 	return l.Banner
 }
 
-func (l *Link) FaviconURL() string {
+func (l *Share) FaviconURL() string {
 	_, _, err := l.GetShareImagePartsHelper(false)
 	if err == nil {
 		return fmt.Sprintf("%s%spublic/api/share/image?favicon=true&hash=%s", settings.Config.Server.ExternalUrl, settings.Config.Server.BaseURL, l.Hash)
@@ -188,7 +188,7 @@ func (l *Link) FaviconURL() string {
 	return l.Favicon
 }
 
-func (l *Link) GetShareImagePartsHelper(isBanner bool) (string, string, error) {
+func (l *Share) GetShareImagePartsHelper(isBanner bool) (string, string, error) {
 	// Get the asset query string from share
 	var assetQueryString string
 	if isBanner {

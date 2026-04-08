@@ -77,14 +77,18 @@ func TestWithAdminHelper(t *testing.T) {
 	setupTestEnv(t)
 	// Mock a user who has admin permissions
 	adminUser := &users.User{
-		ID:          1,
-		Username:    "admin",
-		Permissions: users.Permissions{Admin: true}, // Ensure the user is an admin
+		ID: 1,
+		FrontendUser: users.FrontendUser{
+			Username:    "admin",
+			Permissions: users.Permissions{Admin: true}, // Ensure the user is an admin
+		},
 	}
 	nonAdminUser := &users.User{
-		ID:          2,
-		Username:    "non-admin",
-		Permissions: users.Permissions{Admin: false}, // Non-admin user
+		ID: 2,
+		FrontendUser: users.FrontendUser{
+			Username:    "non-admin",
+			Permissions: users.Permissions{Admin: false}, // Non-admin user
+		},
 	}
 	// Save the users to the mock database
 	if err := state.CreateUser(adminUser, ""); err != nil {
@@ -158,10 +162,12 @@ func TestPublicShareHandlerAuthentication(t *testing.T) {
 
 	// Create and save a dummy user (shares reference owner by UserID)
 	dummyUser := &users.User{
-		ID:          1,
-		Username:    "testuser",
-		Permissions: users.Permissions{Admin: false},
-		Scopes: []users.SourceScope{
+		ID: 1,
+		FrontendUser: users.FrontendUser{
+			Username:    "testuser",
+			Permissions: users.Permissions{Admin: false},
+		},
+		BackendScopes: []users.SourceScope{
 			{Name: "/srv", Scope: "/"}, // Use source PATH not name
 		},
 	}
@@ -171,7 +177,7 @@ func TestPublicShareHandlerAuthentication(t *testing.T) {
 
 	testCases := []struct {
 		name               string
-		share              *share.Link
+		share              *share.Share
 		token              string
 		password           string
 		extraHeaders       map[string]string
@@ -179,25 +185,25 @@ func TestPublicShareHandlerAuthentication(t *testing.T) {
 	}{
 		{
 			name: "Public share, no auth required",
-			share: &share.Link{
-				Hash:   "public_hash",
-				UserID: 1,
-				CommonShare: share.CommonShare{
+			share: &share.Share{
+				CreateShare: share.CreateShare{
 					Source: "/srv",
+					Hash:   "public_hash",
 				},
+				UserID: 1,
 			},
 			expectedStatusCode: http.StatusOK, // zero means 200 on helpers
 		},
 		{
 			name: "Private share, valid password when token exists",
-			share: &share.Link{
-				Hash:         "pw_and_token_hash",
+			share: &share.Share{
+				CreateShare: share.CreateShare{
+					Source: "/srv",
+					Hash:   "pw_and_token_hash",
+				},
 				UserID:       1,
 				PasswordHash: passwordBcrypt,
 				Token:        "some_random_token",
-				CommonShare: share.CommonShare{
-					Source: "/srv",
-				},
 			},
 			extraHeaders: map[string]string{
 				"X-SHARE-PASSWORD": "password",
@@ -206,8 +212,10 @@ func TestPublicShareHandlerAuthentication(t *testing.T) {
 		},
 		{
 			name: "Private share, no auth provided",
-			share: &share.Link{
-				Hash:         "private_hash",
+			share: &share.Share{
+				CreateShare: share.CreateShare{
+					Hash: "private_hash",
+				},
 				UserID:       1,
 				PasswordHash: passwordBcrypt,
 				Token:        "123",
@@ -216,22 +224,24 @@ func TestPublicShareHandlerAuthentication(t *testing.T) {
 		},
 		{
 			name: "Private share, valid token",
-			share: &share.Link{
-				Hash:         "token_hash",
+			share: &share.Share{
+				CreateShare: share.CreateShare{
+					Source: "/srv",
+					Hash:   "token_hash",
+				},
 				UserID:       1,
 				PasswordHash: passwordBcrypt,
 				Token:        "123",
-				CommonShare: share.CommonShare{
-					Source: "/srv",
-				},
 			},
 			token:              "123",
 			expectedStatusCode: http.StatusOK, // zero means 200 on helpers
 		},
 		{
 			name: "Private share, invalid password",
-			share: &share.Link{
-				Hash:         "pw_hash",
+			share: &share.Share{
+				CreateShare: share.CreateShare{
+					Hash: "pw_hash",
+				},
 				UserID:       1,
 				PasswordHash: passwordBcrypt,
 				Token:        "123",

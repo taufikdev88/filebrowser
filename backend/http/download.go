@@ -151,11 +151,11 @@ func downloadHandler(w http.ResponseWriter, r *http.Request, d *requestContext) 
 }
 
 func rawFilesHandler(w http.ResponseWriter, r *http.Request, d *requestContext, source string, fileList []string) (int, error) {
-	if !d.user.Permissions.Download && d.share == nil {
+	if !d.user.Permissions.Download && d.share.Hash == "" {
 		return http.StatusForbidden, fmt.Errorf("user is not allowed to download")
 	}
 
-	if len(fileList) == 0 && d.share == nil {
+	if len(fileList) == 0 && d.share.Hash == "" {
 		return http.StatusBadRequest, fmt.Errorf("no files specified")
 	}
 
@@ -170,7 +170,7 @@ func rawFilesHandler(w http.ResponseWriter, r *http.Request, d *requestContext, 
 	var logContext *OnlyOfficeLogContext
 
 	// modify all filepaths for user scope
-	if d.share == nil {
+	if d.share.Hash == "" {
 		userscope, err = d.user.GetScopeForSourceName(source)
 		if err != nil {
 			// Send OnlyOffice error log if this was an OnlyOffice file
@@ -231,7 +231,7 @@ func rawFilesHandler(w http.ResponseWriter, r *http.Request, d *requestContext, 
 		}
 
 		// Verify access control before opening the file (direct rule check)
-		if d.share == nil && accessStore != nil {
+		if d.share.Hash == "" && accessStore != nil {
 			if !accessStore.Permitted(idx.Path, firstFilePath, d.user.Username) {
 				logger.Debugf("user %s denied access to path %s", d.user.Username, firstFilePath)
 				// Send OnlyOffice error log if this was an OnlyOffice download
@@ -283,7 +283,7 @@ func rawFilesHandler(w http.ResponseWriter, r *http.Request, d *requestContext, 
 		// video scrubbing, etc.
 		// Note: http.ServeContent will respect our already-set Content-Disposition header
 		var reader io.ReadSeeker = fd
-		if d.share != nil && d.share.MaxBandwidth > 0 {
+		if d.share.Hash != "" && d.share.MaxBandwidth > 0 {
 			// convert KB/s to B/s
 			limit := rate.Limit(d.share.MaxBandwidth * 1024)
 			// burst size can be the same as limit

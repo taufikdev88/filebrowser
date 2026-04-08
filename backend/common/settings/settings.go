@@ -112,10 +112,10 @@ func ApplyUserDefaults(u *users.User) {
 	u.FileLoading = Config.UserDefaults.FileLoading
 	u.DisableOfficePreviewExt = Config.UserDefaults.DisableOfficePreviewExt
 	u.PreferEditorForMarkdown = Config.UserDefaults.PreferEditorForMarkdown
-	if len(u.Scopes) == 0 && u.Username != "anonymous" {
+	if len(u.BackendScopes) == 0 && u.Username != "anonymous" {
 		for _, source := range Config.Server.Sources {
 			if source.Config.DefaultEnabled {
-				u.Scopes = append(u.Scopes, users.SourceScope{
+				u.BackendScopes = append(u.BackendScopes, users.SourceScope{
 					Name:  source.Path, // backend name is path
 					Scope: source.Config.DefaultUserScope,
 				})

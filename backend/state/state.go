@@ -23,9 +23,9 @@ var (
 	sqlStore *sqldb.SQLStore
 
 	// In-memory caches
-	usersByID   map[uint64]*users.User
-	usersByName map[string]*users.User
-	sharesByHash    map[string]*share.Link
+	usersByID       map[uint64]*users.User
+	usersByName     map[string]*users.User
+	sharesByHash    map[string]*share.Share
 	sharesByPath    map[string][]string // "source:path" -> []hash
 	indexInfoByPath map[string]*dbindex.IndexInfo
 
@@ -54,7 +54,7 @@ func Initialize(dbPath string) (bool, error) {
 	// Initialize caches
 	usersByID = make(map[uint64]*users.User)
 	usersByName = make(map[string]*users.User)
-	sharesByHash = make(map[string]*share.Link)
+	sharesByHash = make(map[string]*share.Share)
 	sharesByPath = make(map[string][]string)
 	indexInfoByPath = make(map[string]*dbindex.IndexInfo)
 

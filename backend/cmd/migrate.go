@@ -136,24 +136,34 @@ func migrateUsers(oldDB *storm.DB, sqlStore *sqldb.SQLStore) error {
 	return nil
 }
 
-// migrateShares migrates all shares from BoltDB to SQLite
+// migrateShares migrates all shares from BoltDB to SQLite.
+// Bolt records use bucket names from historical type names ("Share" or "Link"); decode uses
+// LegacyShare so password_hash (and JSON codec fields) map correctly, then ToShare for SQLite.
 func migrateShares(oldDB *storm.DB, sqlStore *sqldb.SQLStore) error {
-	var sharesList []*share.Link
-	err := oldDB.All(&sharesList)
-	if err != nil {
-		if err.Error() == "not found" {
-			logger.Info("  No shares to migrate")
-			return nil
+	boltShareBuckets := []string{"Share", "Link"}
+	var sharesList []*share.LegacyShare
+	for _, bucket := range boltShareBuckets {
+		var batch []*share.LegacyShare
+		err := oldDB.Select().Bucket(bucket).Find(&batch)
+		if err != nil && err != storm.ErrNotFound {
+			return fmt.Errorf("failed to read shares from old DB bucket %q: %w", bucket, err)
 		}
-		return fmt.Errorf("failed to read shares from old DB: %w", err)
+		if len(batch) > 0 {
+			sharesList = append(sharesList, batch...)
+		}
 	}
 
-	for _, link := range sharesList {
+	if len(sharesList) == 0 {
+		logger.Info("  No shares to migrate")
+		return nil
+	}
+
+	for _, legacy := range sharesList {
+		link := legacy.ToShare()
 		if link.UserID == 0 {
 			return fmt.Errorf("failed to save share %s: owner user id is missing", link.Hash)
 		}
-		err := sqlStore.SaveShare(link)
-		if err != nil {
+		if err := sqlStore.SaveShare(&link); err != nil {
 			return fmt.Errorf("failed to save share %s: %w", link.Hash, err)
 		}
 	}

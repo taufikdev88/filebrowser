@@ -127,21 +127,25 @@ func setupTestUsers(t *testing.T) *users.Storage {
 	}
 
 	user1 := &users.User{
-		ID:       1,
-		Username: "admin",
-		NonAdminEditable: users.NonAdminEditable{
-			Password: password1Hash,
+		ID: 1,
+		FrontendUser: users.FrontendUser{
+			Username: "admin",
+			NonAdminEditable: users.NonAdminEditable{
+				Password: password1Hash,
+			},
+			LoginMethod: users.LoginMethodPassword,
 		},
-		LoginMethod: users.LoginMethodPassword,
 	}
 
 	user2 := &users.User{
-		ID:       2,
-		Username: "testuser",
-		NonAdminEditable: users.NonAdminEditable{
-			Password: password2Hash,
+		ID: 2,
+		FrontendUser: users.FrontendUser{
+			Username: "testuser",
+			NonAdminEditable: users.NonAdminEditable{
+				Password: password2Hash,
+			},
+			LoginMethod: users.LoginMethodPassword,
 		},
-		LoginMethod: users.LoginMethodPassword,
 	}
 
 	err = storage.Save(user1, false, false)

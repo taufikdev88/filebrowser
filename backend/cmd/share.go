@@ -27,7 +27,7 @@ func validateShareInfo() {
 		if link.Version == 0 {
 			hash := link.Hash
 			// Save the updated share
-			if err := state.UpdateShare(hash, func(existingShare *share.Link) error {
+			if err := state.UpdateShare(hash, func(existingShare *share.Share) error {
 				// Set version to 1 to indicate migration is complete
 				existingShare.Version = 1
 				// Add default sidebar links

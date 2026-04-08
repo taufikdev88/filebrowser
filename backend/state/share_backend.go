@@ -11,32 +11,31 @@ import (
 // shareBackend implements share.StorageBackend using state
 type shareBackend struct{}
 
-func (s shareBackend) All() ([]*share.Link, error) {
+func (s shareBackend) All() ([]*share.Share, error) {
 	sharesList, err := GetAllShares()
 	if err != nil {
 		return nil, err
 	}
-	// Convert values to pointers for backward compatibility
-	result := make([]*share.Link, len(sharesList))
+	result := make([]*share.Share, len(sharesList))
 	for i := range sharesList {
 		result[i] = &sharesList[i]
 	}
 	return result, nil
 }
 
-func (s shareBackend) FindByUserID(userID uint64) ([]*share.Link, error) {
+func (s shareBackend) FindByUserID(userID uint64) ([]*share.Share, error) {
 	sharesList, err := GetSharesByUserID(userID)
 	if err != nil {
 		return nil, err
 	}
-	result := make([]*share.Link, len(sharesList))
+	result := make([]*share.Share, len(sharesList))
 	for i := range sharesList {
 		result[i] = &sharesList[i]
 	}
 	return result, nil
 }
 
-func (s shareBackend) GetByHash(hash string) (*share.Link, error) {
+func (s shareBackend) GetByHash(hash string) (*share.Share, error) {
 	link, err := GetShare(hash)
 	if err != nil && err.Error() == "share not found" {
 		return nil, errors.ErrNotExist
@@ -44,10 +43,11 @@ func (s shareBackend) GetByHash(hash string) (*share.Link, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &link, nil
+	out := link
+	return &out, nil
 }
 
-func (s shareBackend) GetCommonShareByHash(hash string) (*share.CommonShare, error) {
+func (s shareBackend) GetShareInfoByHash(hash string) (*share.FrontendShareInfo, error) {
 	link, err := GetShare(hash)
 	if err != nil {
 		if err.Error() == "share not found" {
@@ -55,12 +55,12 @@ func (s shareBackend) GetCommonShareByHash(hash string) (*share.CommonShare, err
 		}
 		return nil, err
 	}
-	cs := link.CommonShare
+	cs := link.FrontendShareInfo
 	cs.HasPassword = link.HasPassword()
 	return &cs, nil
 }
 
-func (s shareBackend) GetPermanent(path, source string, userID uint64) (*share.Link, error) {
+func (s shareBackend) GetPermanent(path, source string, userID uint64) (*share.Share, error) {
 	link, err := sqlStore.GetPermanentShare(source, path, userID)
 	if err != nil {
 		return nil, err
@@ -68,23 +68,22 @@ func (s shareBackend) GetPermanent(path, source string, userID uint64) (*share.L
 	return link, nil
 }
 
-func (s shareBackend) GetBySourcePath(path, source string) ([]*share.Link, error) {
+func (s shareBackend) GetBySourcePath(path, source string) ([]*share.Share, error) {
 	links, err := GetSharesByPath(source, path)
 	if err != nil {
 		return nil, err
 	}
 	if len(links) == 0 {
-		return []*share.Link{}, nil
+		return []*share.Share{}, nil
 	}
-	// Convert values to pointers for backward compatibility
-	result := make([]*share.Link, len(links))
+	result := make([]*share.Share, len(links))
 	for i := range links {
 		result[i] = &links[i]
 	}
 	return result, nil
 }
 
-func (s shareBackend) Gets(path, source string, userID uint64) ([]*share.Link, error) {
+func (s shareBackend) Gets(path, source string, userID uint64) ([]*share.Share, error) {
 	logger.Debug("shareBackend.Gets ENTRY", "path", path, "source", source, "userID", userID)
 	links, err := GetSharesByPath(source, path)
 	logger.Debug("shareBackend.Gets after GetSharesByPath", "count", len(links), "err", err)
@@ -92,7 +91,7 @@ func (s shareBackend) Gets(path, source string, userID uint64) ([]*share.Link, e
 		return nil, err
 	}
 	now := time.Now().Unix()
-	filtered := make([]*share.Link, 0)
+	filtered := make([]*share.Share, 0)
 	for i := range links {
 		l := &links[i]
 		if l.UserID == userID && (l.Expire == 0 || l.Expire > now || l.KeepAfterExpiration) {
@@ -103,7 +102,7 @@ func (s shareBackend) Gets(path, source string, userID uint64) ([]*share.Link, e
 	return filtered, nil
 }
 
-func (s shareBackend) Save(l *share.Link) error {
+func (s shareBackend) Save(l *share.Share) error {
 	// Check if share exists
 	_, err := GetShare(l.Hash)
 	if err != nil {
@@ -111,7 +110,7 @@ func (s shareBackend) Save(l *share.Link) error {
 		return CreateShare(l)
 	}
 	// Share exists, update it
-	return UpdateShare(l.Hash, func(existingShare *share.Link) error {
+	return UpdateShare(l.Hash, func(existingShare *share.Share) error {
 		// Copy all fields from l to existingShare
 		*existingShare = *l
 		return nil

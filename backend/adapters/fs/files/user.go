@@ -24,7 +24,7 @@ func MakeUserDirs(u *users.User, disableScopeChange bool) error {
 	if cleanedUserName == "" || cleanedUserName == "-" || cleanedUserName == "." {
 		return fmt.Errorf("MakeUserDirs: invalid user for home dir creation: [%s]", u.Username)
 	}
-	for i, scope := range u.Scopes {
+	for i, scope := range u.BackendScopes {
 		source, ok := settings.Config.Server.SourceMap[scope.Name]
 		if !ok {
 			logger.Errorf("MakeUserDirs: source not found: %s", scope.Name)
@@ -68,7 +68,7 @@ func MakeUserDirs(u *users.User, disableScopeChange bool) error {
 				continue
 			}
 		}
-		u.Scopes[i] = scope
+		u.BackendScopes[i] = scope
 	}
 	return nil
 }

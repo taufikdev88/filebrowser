@@ -33,9 +33,9 @@ func GetUser(id uint64) (users.User, error) {
 	userCopy := *user
 
 	// Deep copy slices and maps
-	if user.Scopes != nil {
-		userCopy.Scopes = make([]users.SourceScope, len(user.Scopes))
-		copy(userCopy.Scopes, user.Scopes)
+	if user.BackendScopes != nil {
+		userCopy.BackendScopes = make([]users.SourceScope, len(user.BackendScopes))
+		copy(userCopy.BackendScopes, user.BackendScopes)
 	}
 
 	if user.Tokens != nil {
@@ -68,9 +68,9 @@ func GetUserByUsername(username string) (users.User, error) {
 	userCopy := *user
 
 	// Deep copy slices and maps
-	if user.Scopes != nil {
-		userCopy.Scopes = make([]users.SourceScope, len(user.Scopes))
-		copy(userCopy.Scopes, user.Scopes)
+	if user.BackendScopes != nil {
+		userCopy.BackendScopes = make([]users.SourceScope, len(user.BackendScopes))
+		copy(userCopy.BackendScopes, user.BackendScopes)
 	}
 
 	if user.Tokens != nil {
@@ -111,9 +111,9 @@ func GetAllUsers() ([]users.User, error) {
 		userCopy := *user
 
 		// Deep copy slices and maps
-		if user.Scopes != nil {
-			userCopy.Scopes = make([]users.SourceScope, len(user.Scopes))
-			copy(userCopy.Scopes, user.Scopes)
+		if user.BackendScopes != nil {
+			userCopy.BackendScopes = make([]users.SourceScope, len(user.BackendScopes))
+			copy(userCopy.BackendScopes, user.BackendScopes)
 		}
 
 		if user.Tokens != nil {
@@ -146,7 +146,7 @@ func UserFromAPIToken(tk users.AuthToken, rawToken string) (users.User, error) {
 }
 
 // UserForShareOwner resolves the user who owns a share link.
-func UserForShareOwner(link *share.Link) (users.User, error) {
+func UserForShareOwner(link share.Share) (users.User, error) {
 	if link.UserID == 0 {
 		return users.User{}, errors.ErrNotExist
 	}
@@ -167,12 +167,17 @@ func CreateUser(user *users.User, plaintextPassword string) error {
 		user.Password = hashedPassword
 	}
 
-	// Convert scope names to backend paths and create user directories if needed
+	// Convert scope names to backend paths when the client supplied frontend scopes.
+	// If only BackendScopes is set (defaults, tests, migrations), do not wipe it.
 	adjustedScopes, err := user.GetBackendScopes()
 	if err != nil {
 		return err
 	}
-	user.Scopes = adjustedScopes
+	if len(user.Scopes) > 0 {
+		user.BackendScopes = adjustedScopes
+	} else if len(user.BackendScopes) == 0 {
+		user.BackendScopes = adjustedScopes
+	}
 
 	// Create user directories and adjust scope paths if createUserDir is enabled
 	err = files.MakeUserDirs(user, false)
@@ -277,6 +282,26 @@ func UpdateUser(user *users.User, plaintextPassword string, fields ...string) er
 
 		// Replace entire user pointer
 		existingUser = user
+	}
+
+	// Sync backend scope paths from API/front scopes before persisting (full replace always; patch when "scopes" listed)
+	if updateAll {
+		adjustedScopes, err := existingUser.GetBackendScopes()
+		if err != nil {
+			return err
+		}
+		existingUser.BackendScopes = adjustedScopes
+	} else {
+		for _, jsonFieldName := range fields {
+			if strings.EqualFold(jsonFieldName, "scopes") {
+				adjustedScopes, err := existingUser.GetBackendScopes()
+				if err != nil {
+					return err
+				}
+				existingUser.BackendScopes = adjustedScopes
+				break
+			}
+		}
 	}
 
 	// 3. Write to database

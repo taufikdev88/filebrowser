@@ -154,7 +154,7 @@ func onlyofficeClientConfigGetHandler(w http.ResponseWriter, r *http.Request, d 
 
 	// Determine modify permissions based on whether this is a share or regular request
 	var modifyPerms bool
-	if d.fileInfo.Hash != "" && d.share != nil {
+	if d.fileInfo.Hash != "" && d.share.Hash != "" {
 		// Share request - check share permissions
 		modifyPerms = d.share.AllowModify
 	} else {
@@ -354,7 +354,7 @@ func processOnlyOfficeCallback(w http.ResponseWriter, r *http.Request, d *reques
 	path := r.URL.Query().Get("path")
 	user := d.user
 
-	if d.share != nil {
+	if d.share.Hash != "" {
 		source = d.share.GetSourceName()
 		path = d.IndexPath
 		user = d.shareUser
@@ -477,7 +477,7 @@ func processOnlyOfficeCallback(w http.ResponseWriter, r *http.Request, d *reques
 		}
 
 		// Check share permissions first if this is a share request
-		if d.share != nil {
+		if d.share.Hash != "" {
 			if !d.share.AllowModify {
 				logger.Errorf("OnlyOffice callback: edit permission not allowed for this share")
 				return returnOnlyOfficeError(w, r, 403, "edit permission not allowed for this share")

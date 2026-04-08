@@ -205,8 +205,10 @@ func setUser(dbConfig string, asAdmin bool) error {
 	user, err := state.GetUserByUsername(username)
 	if err != nil {
 		newUser := users.User{
-			Username:    username,
-			LoginMethod: users.LoginMethodPassword,
+			FrontendUser: users.FrontendUser{
+				Username:    username,
+				LoginMethod: users.LoginMethodPassword,
+			},
 		}
 		for _, source := range settings.Config.Server.SourceMap {
 			if source.Config.DefaultEnabled {

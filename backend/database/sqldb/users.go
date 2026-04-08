@@ -54,7 +54,7 @@ func finishUserLoad(user *users.User, userDataJSON []byte) error {
 		return fmt.Errorf("failed to unmarshal user data: %w", err)
 	}
 	user.Password = userData.Password
-	user.Scopes = userData.Scopes
+	user.BackendScopes = userData.Scopes
 	user.Tokens = userData.Tokens
 	user.TOTPSecret = userData.TOTPSecret
 	user.TOTPNonce = userData.TOTPNonce
@@ -205,7 +205,7 @@ func (s *SQLStore) CreateUser(user *users.User) error {
 
 	userData := UserData{
 		Password:         user.Password,
-		Scopes:           user.Scopes,
+		Scopes:           user.BackendScopes,
 		Tokens:           user.Tokens,
 		TOTPSecret:       user.TOTPSecret,
 		TOTPNonce:        user.TOTPNonce,
@@ -250,7 +250,7 @@ func (s *SQLStore) CreateUser(user *users.User) error {
 func (s *SQLStore) UpdateUser(user *users.User) error {
 	userData := UserData{
 		Password:         user.Password,
-		Scopes:           user.Scopes,
+		Scopes:           user.BackendScopes,
 		Tokens:           user.Tokens,
 		TOTPSecret:       user.TOTPSecret,
 		TOTPNonce:        user.TOTPNonce,

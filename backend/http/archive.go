@@ -49,7 +49,7 @@ import (
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /api/resources/archive [post]
 func archiveCreateHandler(w http.ResponseWriter, r *http.Request, d *requestContext) (int, error) {
-	if d.share != nil {
+	if d.share.Hash != "" {
 		return http.StatusForbidden, fmt.Errorf("archive create not allowed for shares")
 	}
 	if !d.user.Permissions.Create {
@@ -240,7 +240,7 @@ func archiveCreateHandler(w http.ResponseWriter, r *http.Request, d *requestCont
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /api/resources/unarchive [post]
 func unarchiveHandler(w http.ResponseWriter, r *http.Request, d *requestContext) (int, error) {
-	if d.share != nil {
+	if d.share.Hash != "" {
 		return http.StatusForbidden, fmt.Errorf("unarchive not allowed for shares")
 	}
 	if !d.user.Permissions.Create {
@@ -399,7 +399,7 @@ func addFile(source string, path string, d *requestContext, tarWriter *tar.Write
 			}
 
 			// Check access control for each file/folder during walk
-			if d.share == nil {
+			if d.share.Hash == "" {
 				indexRelPath := utils.JoinPathAsUnix(path, relPath)
 				indexRelPath = filepath.ToSlash(indexRelPath)
 				if !accessStore.Permitted(idx.Path, indexRelPath, d.user.Username) {
@@ -599,7 +599,7 @@ func BuildAndStreamArchive(w http.ResponseWriter, r *http.Request, d *requestCon
 	w.Header().Set("Content-Type", "application/octet-stream")
 
 	var writer io.Writer = w
-	if d.share != nil && d.share.MaxBandwidth > 0 {
+	if d.share.Hash != "" && d.share.MaxBandwidth > 0 {
 		limit := rate.Limit(d.share.MaxBandwidth * 1024)
 		burst := d.share.MaxBandwidth * 1024
 		writer = newThrottledWriter(w, limit, burst, r.Context())

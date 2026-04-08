@@ -89,8 +89,10 @@ func getOrCreateAuthenticatedUser(username string, loginMethod users.LoginMethod
 		}
 		// Auto-create user on first authentication
 		user := users.User{
-			LoginMethod: loginMethod,
-			Username:    username,
+			FrontendUser: users.FrontendUser{
+				LoginMethod: loginMethod,
+				Username:    username,
+			},
 		}
 		settings.ApplyUserDefaults(&user)
 
@@ -293,8 +295,10 @@ func signupHandler(w http.ResponseWriter, r *http.Request, d *requestContext) (i
 	}
 
 	user := users.User{
-		Username:    username,
-		LoginMethod: users.LoginMethodPassword,
+		FrontendUser: users.FrontendUser{
+			Username:    username,
+			LoginMethod: users.LoginMethodPassword,
+		},
 	}
 	err := state.CreateUser(&user, password)
 	if err != nil {
@@ -344,7 +348,7 @@ func printToken(w http.ResponseWriter, r *http.Request, user *users.User) (int, 
 	return 0, nil
 }
 
-func authenticateShareRequest(r *http.Request, l *share.Link) (int, error) {
+func authenticateShareRequest(r *http.Request, l share.Share) (int, error) {
 	if l.PasswordHash == "" {
 		return 200, nil
 	}

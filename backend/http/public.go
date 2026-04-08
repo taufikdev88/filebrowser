@@ -66,11 +66,8 @@ func publicDownloadHandler(w http.ResponseWriter, r *http.Request, d *requestCon
 		}
 	}
 
-	d.share.Downloads++
-
-	// Track per-user download if enabled
-	if d.share.PerUserDownloadLimit {
-		d.share.IncrementUserDownload(d.user.Username)
+	if err := recordShareDownload(d.share.Hash, d.user.Username); err != nil {
+		return http.StatusInternalServerError, err
 	}
 
 	// Get all "file" parameter values (supports repeated params)

@@ -67,26 +67,32 @@ type Preview struct {
 	Models             bool `json:"models"`             // show live thumbnails for 3D models files
 }
 
-// User describes a user.
-type User struct {
+// FrontendUser holds fields safe to return from user APIs (embedded on User).
+// Scopes and SidebarLinks are frontend/source-derived; see PrepForFrontend.
+type FrontendUser struct {
 	NonAdminEditable
-	DisableSettings bool                 `json:"disableSettings"`
-	ID              uint64               `storm:"id,increment" json:"id,omitempty"`
-	Username        string               `storm:"unique" json:"username"`
-	Scopes          []SourceScope        `json:"scopes"`
-	Scope           string               `json:"scope,omitempty"`
-	LockPassword    bool                 `json:"lockPassword"`
-	Permissions     Permissions          `json:"permissions"`
-	ApiKeys         map[string]AuthToken `json:"apiKeys,omitempty"` // deprecated: use Tokens instead
-	Tokens          map[string]AuthToken `json:"tokens,omitempty"`
-	TOTPSecret      string               `json:"totpSecret,omitempty"`
-	TOTPNonce       string               `json:"totpNonce,omitempty"`
-	LoginMethod     LoginMethod          `json:"loginMethod"`
-	OtpEnabled      bool                 `json:"otpEnabled"` // true if TOTP is enabled, false otherwise
-	Version         int                  `json:"version"`
-	ShowFirstLogin  bool                 `json:"showFirstLogin"`
-	// legacy for migration purposes... og filebrowser has perm attribute
-	Perm Permissions `json:"perm,omitzero"` // deprecated: use Permissions instead
+	DisableSettings bool          `json:"disableSettings"`
+	Username        string        `json:"username"`
+	Scopes          []SourceScope `json:"scopes"`
+	Scope           string        `json:"scope,omitempty"`
+	LockPassword    bool          `json:"lockPassword"`
+	Permissions     Permissions   `json:"permissions"`
+	LoginMethod     LoginMethod   `json:"loginMethod"`
+	OtpEnabled      bool          `json:"otpEnabled"`
+	Version         int           `json:"version"`
+	ShowFirstLogin  bool          `json:"showFirstLogin"`
+	Perm            Permissions   `json:"perm,omitzero"`
+}
+
+// User is the persisted user: frontend-facing data plus id, backend scopes, and secrets.
+type User struct {
+	FrontendUser
+	ID            uint64               `json:"id,omitempty"`
+	BackendScopes []SourceScope        `json:"-"`                 // source paths; persisted in user_data JSON as "scopes"
+	ApiKeys       map[string]AuthToken `json:"apiKeys,omitempty"` // deprecated: use Tokens instead
+	Tokens        map[string]AuthToken `json:"tokens,omitempty"`
+	TOTPSecret    string               `json:"totpSecret,omitempty"`
+	TOTPNonce     string               `json:"totpNonce,omitempty"`
 }
 
 type SourceScope struct {
@@ -193,7 +199,7 @@ func SetSourceConfig(config *SourceConfigProvider) {
 // GetScopeForSourcePath returns the scope for a given source path (backend-style)
 // This method works with backend-style scopes where Name is the source path
 func (u *User) GetScopeForSourcePath(sourcePath string) (string, error) {
-	for _, scope := range u.Scopes {
+	for _, scope := range u.BackendScopes {
 		if scope.Name == sourcePath {
 			return scope.Scope, nil
 		}
@@ -218,7 +224,7 @@ func (u *User) GetScopeForSourceName(sourceName string) (string, error) {
 
 // HasSourceByPath checks if the user has access to a given source path
 func (u *User) HasSourceByPath(sourcePath string) bool {
-	for _, scope := range u.Scopes {
+	for _, scope := range u.BackendScopes {
 		if scope.Name == sourcePath {
 			return true
 		}
@@ -228,8 +234,8 @@ func (u *User) HasSourceByPath(sourcePath string) bool {
 
 // GetSourcePaths returns all source paths the user has access to
 func (u *User) GetSourcePaths() []string {
-	paths := make([]string, 0, len(u.Scopes))
-	for _, scope := range u.Scopes {
+	paths := make([]string, 0, len(u.BackendScopes))
+	for _, scope := range u.BackendScopes {
 		paths = append(paths, scope.Name)
 	}
 	return paths

@@ -96,7 +96,7 @@ func handleWithStaticData(w http.ResponseWriter, r *http.Request, d *requestCont
 	shareHash := ""
 	data := make(map[string]interface{})
 	disableNavButtons := settings.Config.Frontend.DisableNavButtons
-	if d.share != nil && d.shareValid {
+	if d.shareValid && d.share.Hash != "" {
 		if d.share.Favicon != "" {
 			if strings.HasPrefix(d.share.Favicon, "http") {
 				favicon = d.share.Favicon

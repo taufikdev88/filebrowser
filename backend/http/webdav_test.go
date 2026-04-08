@@ -156,7 +156,7 @@ func mockCheckPermissions(t *testing.T, source1Path, source2Path string) {
 		// Get user scope for this source - match by source PATH, not name
 		userScope := "/"
 		hasScope := false
-		for _, scope := range user.Scopes {
+		for _, scope := range user.BackendScopes {
 			if scope.Name == sourcePath {
 				userScope = scope.Scope
 				hasScope = true
@@ -165,7 +165,7 @@ func mockCheckPermissions(t *testing.T, source1Path, source2Path string) {
 		}
 
 		// If user has no scope for this source, deny access
-		if !hasScope && len(user.Scopes) > 0 {
+		if !hasScope && len(user.BackendScopes) > 0 {
 			return "", "", fmt.Errorf("user has no access to source: %s", opts.Source)
 		}
 
@@ -208,7 +208,7 @@ func mockWebDAVIndexing(t *testing.T, source1Path, source2Path string) {
 		if access != nil && user != nil {
 			// Simple scope check based on user's configured scopes (which use source PATH)
 			hasAccess := false
-			for _, scope := range user.Scopes {
+			for _, scope := range user.BackendScopes {
 				if scope.Name == sourcePath {
 					hasAccess = true
 					// Check if path is within user's scope
@@ -222,7 +222,7 @@ func mockWebDAVIndexing(t *testing.T, source1Path, source2Path string) {
 					break
 				}
 			}
-			if !hasAccess && len(user.Scopes) > 0 {
+			if !hasAccess && len(user.BackendScopes) > 0 {
 				return nil, commonerrors.ErrAccessDenied
 			}
 		}
@@ -284,39 +284,45 @@ func TestWebDAV_PROPFIND_UserScopes(t *testing.T) {
 	// Create users with different scopes
 	// IMPORTANT: SourceScope.Name should be the source PATH, not the source name
 	adminUser := &users.User{
-		ID:       1,
-		Username: "admin",
-		Permissions: users.Permissions{
-			Admin:    true,
-			Download: true,
-			Create:   true,
-			Delete:   true,
-			Modify:   true,
+		ID: 1,
+		FrontendUser: users.FrontendUser{
+			Username: "admin",
+			Permissions: users.Permissions{
+				Admin:    true,
+				Download: true,
+				Create:   true,
+				Delete:   true,
+				Modify:   true,
+			},
 		},
-		Scopes: []users.SourceScope{
+		BackendScopes: []users.SourceScope{
 			{Name: source1Path, Scope: "/"},
 			{Name: source2Path, Scope: "/"},
 		},
 	}
 
 	scopedUser := &users.User{
-		ID:       2,
-		Username: "scoped",
-		Permissions: users.Permissions{
-			Download: true,
+		ID: 2,
+		FrontendUser: users.FrontendUser{
+			Username: "scoped",
+			Permissions: users.Permissions{
+				Download: true,
+			},
 		},
-		Scopes: []users.SourceScope{
+		BackendScopes: []users.SourceScope{
 			{Name: source1Path, Scope: "/_docker"},
 		},
 	}
 
 	restrictedUser := &users.User{
-		ID:       3,
-		Username: "restricted",
-		Permissions: users.Permissions{
-			Download: true,
+		ID: 3,
+		FrontendUser: users.FrontendUser{
+			Username: "restricted",
+			Permissions: users.Permissions{
+				Download: true,
+			},
 		},
-		Scopes: []users.SourceScope{
+		BackendScopes: []users.SourceScope{
 			{Name: source1Path, Scope: "/public"},
 		},
 	}
@@ -418,40 +424,46 @@ func TestWebDAV_WriteOperations(t *testing.T) {
 	// Create users with different permissions
 	// IMPORTANT: SourceScope.Name should be the source PATH, not the source name
 	fullAccessUser := &users.User{
-		ID:       1,
-		Username: "fullaccess",
-		Permissions: users.Permissions{
-			Download: true,
-			Create:   true,
-			Delete:   true,
-			Modify:   true,
+		ID: 1,
+		FrontendUser: users.FrontendUser{
+			Username: "fullaccess",
+			Permissions: users.Permissions{
+				Download: true,
+				Create:   true,
+				Delete:   true,
+				Modify:   true,
+			},
 		},
-		Scopes: []users.SourceScope{
+		BackendScopes: []users.SourceScope{
 			{Name: source1Path, Scope: "/"},
 		},
 	}
 
 	readOnlyUser := &users.User{
-		ID:       2,
-		Username: "readonly",
-		Permissions: users.Permissions{
-			Download: true,
+		ID: 2,
+		FrontendUser: users.FrontendUser{
+			Username: "readonly",
+			Permissions: users.Permissions{
+				Download: true,
+			},
 		},
-		Scopes: []users.SourceScope{
+		BackendScopes: []users.SourceScope{
 			{Name: source1Path, Scope: "/"},
 		},
 	}
 
 	scopedUser := &users.User{
-		ID:       3,
-		Username: "scoped",
-		Permissions: users.Permissions{
-			Download: true,
-			Create:   true,
-			Modify:   true,
-			Delete:   true,
+		ID: 3,
+		FrontendUser: users.FrontendUser{
+			Username: "scoped",
+			Permissions: users.Permissions{
+				Download: true,
+				Create:   true,
+				Modify:   true,
+				Delete:   true,
+			},
 		},
-		Scopes: []users.SourceScope{
+		BackendScopes: []users.SourceScope{
 			{Name: source1Path, Scope: "/public"},
 		},
 	}
@@ -561,24 +573,28 @@ func TestWebDAV_AccessControl(t *testing.T) {
 	// Create users
 	// IMPORTANT: SourceScope.Name should be the source PATH, not the source name
 	user1 := &users.User{
-		ID:       1,
-		Username: "user1",
-		Permissions: users.Permissions{
-			Download: true,
-			Create:   true,
+		ID: 1,
+		FrontendUser: users.FrontendUser{
+			Username: "user1",
+			Permissions: users.Permissions{
+				Download: true,
+				Create:   true,
+			},
 		},
-		Scopes: []users.SourceScope{
+		BackendScopes: []users.SourceScope{
 			{Name: source1Path, Scope: "/"},
 		},
 	}
 
 	user2 := &users.User{
-		ID:       2,
-		Username: "user2",
-		Permissions: users.Permissions{
-			Download: true,
+		ID: 2,
+		FrontendUser: users.FrontendUser{
+			Username: "user2",
+			Permissions: users.Permissions{
+				Download: true,
+			},
 		},
-		Scopes: []users.SourceScope{
+		BackendScopes: []users.SourceScope{
 			{Name: source1Path, Scope: "/"},
 		},
 	}
@@ -670,15 +686,17 @@ func TestWebDAV_IndexingStates(t *testing.T) {
 
 	// IMPORTANT: SourceScope.Name should be the source PATH, not the source name
 	user := &users.User{
-		ID:       1,
-		Username: "testuser",
-		Permissions: users.Permissions{
-			Download: true,
-			Create:   true,
-			Modify:   true,
-			Delete:   true,
+		ID: 1,
+		FrontendUser: users.FrontendUser{
+			Username: "testuser",
+			Permissions: users.Permissions{
+				Download: true,
+				Create:   true,
+				Modify:   true,
+				Delete:   true,
+			},
 		},
-		Scopes: []users.SourceScope{
+		BackendScopes: []users.SourceScope{
 			{Name: source1Path, Scope: "/"},
 		},
 	}

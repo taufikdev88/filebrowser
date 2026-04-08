@@ -556,7 +556,7 @@ func validateMoveDestination(src, dst string, isSrcDir bool) error {
 	return nil
 }
 
-func MoveResource(isSrcDir bool, sourceIndex, destIndex, realsrc, realdst string, s *share.Storage, a *access.Storage) error {
+func MoveResource(isSrcDir bool, sourceIndex, destIndex, realsrc, realdst string, a *access.Storage) error {
 	// Check if source and destination are the same file
 	if realsrc == realdst {
 		return fmt.Errorf("cannot move a file to itself: %s", realsrc)
@@ -626,8 +626,7 @@ func MoveResource(isSrcDir bool, sourceIndex, destIndex, realsrc, realdst string
 		}
 	}
 
-	// Use backend source paths to match how shares are stored
-	go s.UpdateShares(srcIdx.Path, srcIdx.MakeIndexPath(realsrc, isSrcDir), dstIdx.Path, dstIdx.MakeIndexPath(realdst, isSrcDir)) //nolint:errcheck
+	// Share path reconciliation is handled by state.UpdateSharesForMovedResource (see http/resource.go).
 
 	// Update access rules for the moved path
 	if a != nil {

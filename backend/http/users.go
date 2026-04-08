@@ -29,7 +29,7 @@ type UserRequest struct {
 // @Accept json
 // @Produce json
 // @Param username query string false "Login name, or 'self' for the current session user"
-// @Success 200 {object} users.User "User details or list of users"
+// @Success 200 {object} users.FrontendUser "User details or list of users"
 // @Failure 400 {object} map[string]string "Bad Request"
 // @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 404 {object} map[string]string "Not Found"
@@ -52,8 +52,8 @@ func userGetHandler(w http.ResponseWriter, r *http.Request, d *requestContext) (
 		if err != nil {
 			return http.StatusInternalServerError, err
 		}
-		prepForFrontend(&u)
-		return renderJSON(w, r, u)
+		u.PrepForFrontend()
+		return renderJSON(w, r, u.FrontendUser)
 	}
 
 	if usernameParam != "" {
@@ -67,8 +67,8 @@ func userGetHandler(w http.ResponseWriter, r *http.Request, d *requestContext) (
 		if !d.user.Permissions.Admin && userValue.Username != d.user.Username {
 			return http.StatusForbidden, nil
 		}
-		prepForFrontend(&userValue)
-		return renderJSON(w, r, userValue)
+		userValue.PrepForFrontend()
+		return renderJSON(w, r, userValue.FrontendUser)
 	}
 
 	userList, err := state.GetAllUsers()
@@ -76,112 +76,27 @@ func userGetHandler(w http.ResponseWriter, r *http.Request, d *requestContext) (
 		return http.StatusInternalServerError, err
 	}
 
-	selfUserList := []users.User{}
+	userListFE := make([]users.FrontendUser, 0, len(userList))
 	for i := range userList {
-		u := &userList[i]
-		prepForFrontend(u)
-		if u.Username == d.user.Username {
-			selfUserList = append(selfUserList, userList[i])
-		}
+		u := userList[i]
+		u.PrepForFrontend()
+		userListFE = append(userListFE, u.FrontendUser)
 	}
 
-	sort.Slice(userList, func(i, j int) bool {
-		return userList[i].Username < userList[j].Username
+	sort.Slice(userListFE, func(i, j int) bool {
+		return userListFE[i].Username < userListFE[j].Username
 	})
 
 	if !d.user.Permissions.Admin {
-		userList = selfUserList
-	}
-	return renderJSON(w, r, userList)
-}
-
-func prepForFrontend(u *users.User) {
-	u.ID = 0
-	u.Password = ""
-	u.ApiKeys = nil
-	u.Tokens = nil
-	u.OtpEnabled = u.TOTPSecret != ""
-	u.TOTPSecret = ""
-	u.TOTPNonce = ""
-	u.Scopes = u.GetFrontendScopes()
-	u.SidebarLinks = u.GetFrontendSidebarLinks()
-	u.Locale = normalizeLocale(u.Locale)
-}
-
-// normalizeLocale converts various locale formats (xx_xx, xx-xx, xxxx) to camelCase format (xxXX)
-// Frontend expects camelCase for compound locales (zhCN, ptBR, etc.) as shown in select option values
-func normalizeLocale(locale string) string {
-	if locale == "" {
-		return locale
-	}
-
-	// Convert to lowercase for processing
-	lower := strings.ToLower(locale)
-
-	// Special case mappings (standard locale codes to frontend camelCase format)
-	specialCases := map[string]string{
-		"cs":    "cz", // Czech
-		"uk":    "ua", // Ukrainian
-		"zh-cn": "zhCN",
-		"zh_cn": "zhCN",
-		"zhcn":  "zhCN",
-		"zh-tw": "zhTW",
-		"zh_tw": "zhTW",
-		"zhtw":  "zhTW",
-		"pt-br": "ptBR",
-		"pt_br": "ptBR",
-		"ptbr":  "ptBR",
-		"sv-se": "svSE",
-		"sv_se": "svSE",
-		"svse":  "svSE",
-		"nl-be": "nlBE",
-		"nl_be": "nlBE",
-		"nlbe":  "nlBE",
-	}
-
-	// Check special cases first
-	if normalized, ok := specialCases[lower]; ok {
-		return normalized
-	}
-
-	// If already in camelCase format (4+ chars, has uppercase), return as-is
-	if len(locale) >= 4 {
-		// Check if it's a known camelCase locale
-		knownCamelCase := map[string]bool{
-			"zhCN": true, "zhTW": true, "ptBR": true, "svSE": true, "nlBE": true,
+		var selfOnly []users.FrontendUser
+		for _, fe := range userListFE {
+			if fe.Username == d.user.Username {
+				selfOnly = append(selfOnly, fe)
+			}
 		}
-		if knownCamelCase[locale] {
-			return locale
-		}
+		userListFE = selfOnly
 	}
-
-	// Handle xx_xx or xx-xx format: convert to xxXX (camelCase)
-	parts := strings.FieldsFunc(lower, func(r rune) bool {
-		return r == '_' || r == '-'
-	})
-
-	if len(parts) == 2 {
-		// Convert to camelCase: first part lowercase, second part capitalized
-		first := parts[0]
-		second := parts[1]
-		if len(second) > 0 {
-			second = strings.ToUpper(second[:1]) + second[1:]
-		}
-		normalized := first + second
-
-		// Check if this matches a known compound locale
-		knownCompound := map[string]string{
-			"zhcn": "zhCN", "zhtw": "zhTW", "ptbr": "ptBR",
-			"svse": "svSE", "nlbe": "nlBE",
-		}
-		if normalizedVal, ok := knownCompound[normalized]; ok {
-			return normalizedVal
-		}
-		return normalized
-	}
-
-	// Single part locale (en, fr, de, etc.) - return as-is (lowercase is fine)
-	return lower
+	return renderJSON(w, r, userListFE)
 }
 
 // userDeleteHandler deletes a user by username (query ?username=).

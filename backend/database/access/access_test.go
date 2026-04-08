@@ -83,7 +83,12 @@ func createTestStorage(t *testing.T) (*access.Storage, *users.Storage) {
 }
 
 func createTestUser(t *testing.T, userStore *users.Storage, username string) {
-	u := &users.User{NonAdminEditable: users.NonAdminEditable{Password: "test"}, Username: username}
+	u := &users.User{
+		FrontendUser: users.FrontendUser{
+			Username:         username,
+			NonAdminEditable: users.NonAdminEditable{Password: "test"},
+		},
+	}
 	err := userStore.Save(u, false, false)
 	if err != nil {
 		t.Fatalf("failed to create user %s: %v", username, err)
@@ -1029,8 +1034,18 @@ func TestFolderVisibilityBugReproduction(t *testing.T) {
 	s, userStorage := createTestStorage(t)
 
 	// Create test users first
-	user1 := &users.User{NonAdminEditable: users.NonAdminEditable{Password: "test"}, Username: "user1"}
-	user2 := &users.User{NonAdminEditable: users.NonAdminEditable{Password: "test"}, Username: "user2"}
+	user1 := &users.User{
+		FrontendUser: users.FrontendUser{
+			Username:         "user1",
+			NonAdminEditable: users.NonAdminEditable{Password: "test"},
+		},
+	}
+	user2 := &users.User{
+		FrontendUser: users.FrontendUser{
+			Username:         "user2",
+			NonAdminEditable: users.NonAdminEditable{Password: "test"},
+		},
+	}
 	err := userStorage.Save(user1, false, false)
 	if err != nil {
 		t.Fatalf("failed to create user1: %v", err)
@@ -1144,8 +1159,18 @@ func TestHasAnyVisibleItems(t *testing.T) {
 	s, userStorage := createTestStorage(t)
 
 	// Create test users
-	user1 := &users.User{NonAdminEditable: users.NonAdminEditable{Password: "test"}, Username: "user1"}
-	user2 := &users.User{NonAdminEditable: users.NonAdminEditable{Password: "test"}, Username: "user2"}
+	user1 := &users.User{
+		FrontendUser: users.FrontendUser{
+			Username:         "user1",
+			NonAdminEditable: users.NonAdminEditable{Password: "test"},
+		},
+	}
+	user2 := &users.User{
+		FrontendUser: users.FrontendUser{
+			Username:         "user2",
+			NonAdminEditable: users.NonAdminEditable{Password: "test"},
+		},
+	}
 	err := userStorage.Save(user1, false, false)
 	if err != nil {
 		t.Fatalf("failed to create user1: %v", err)

@@ -31,12 +31,22 @@ type requestContext struct {
 	shareUser    *users.User
 	fileInfo     iteminfo.ExtendedFileInfo
 	token        string
-	share        *share.Link
+	share        share.Share
 	shareValid   bool
 	ctx          context.Context
 	MaxBandwidth int
 	Data         interface{}
 	IndexPath    string
+}
+
+// recordShareDownload updates authoritative share state and evicts the HTTP layer read cache
+// so subsequent shareStore.GetByHash reloads fresh counters.
+func recordShareDownload(hash, viewerUsername string) error {
+	if err := state.RecordShareDownload(hash, viewerUsername); err != nil {
+		return err
+	}
+	shareStore.ForgetShare(hash)
+	return nil
 }
 
 type HttpResponse struct {
@@ -56,10 +66,9 @@ func withHashFileHelper(fn handleFunc) handleFunc {
 		hash := r.URL.Query().Get("hash")
 		path := r.URL.Query().Get("path")
 
-		// Get the file link by hash
-		link, err := shareStore.GetByHash(hash)
+		link, err := state.GetShare(hash)
 		if err != nil {
-			data.share = &share.Link{}
+			data.share = share.Share{}
 			return http.StatusNotFound, fmt.Errorf("share hash not found")
 		}
 		// Defensive check: data.user should be set by withOrWithoutUserHelper
@@ -151,10 +160,9 @@ func withHashFileHelper(fn handleFunc) handleFunc {
 			file.OnlyOfficeId = ""
 		}
 		if getContent && file.Content != "" {
-			link.Downloads++
-			// Track per-user download if enabled
-			if link.PerUserDownloadLimit {
-				link.IncrementUserDownload(data.user.Username)
+			if err := recordShareDownload(hash, data.user.Username); err != nil {
+				logger.Errorf("record share download: hash=%s err=%v", hash, err)
+				return http.StatusInternalServerError, fmt.Errorf("failed to record download")
 			}
 		}
 		file.Path = utils.AddTrailingSlashIfNotExists(path)
@@ -240,16 +248,19 @@ func extractUserFromExpiredToken(r *http.Request, data *requestContext) *users.U
 // If authentication fails, the request continues without a user.
 func withOrWithoutUserHelper(fn handleFunc) handleFunc {
 	return func(w http.ResponseWriter, r *http.Request, data *requestContext) (int, error) {
-		var link *share.Link
+		var snap share.Share
+		var haveSnap bool
 		var isShareRequest bool
 		var shareHash string
 
 		hash := r.URL.Query().Get("hash")
 		if hash != "" {
-			// Get the file link by hash
 			isShareRequest = true
 			shareHash = hash
-			link, _ = shareStore.GetByHash(hash)
+			if l, err := state.GetShare(hash); err == nil {
+				snap = l
+				haveSnap = true
+			}
 		} else {
 			prefix := config.Server.BaseURL + "public/share/"
 			reconstructed := config.Server.BaseURL + "public" + r.URL.Path
@@ -262,9 +273,10 @@ func withOrWithoutUserHelper(fn handleFunc) handleFunc {
 					if remaining != "" {
 						isShareRequest = true
 						shareHash = remaining
-						var err error
-						link, err = shareStore.GetByHash(remaining)
-						if err != nil {
+						if l, err := state.GetShare(remaining); err == nil {
+							snap = l
+							haveSnap = true
+						} else {
 							logger.Debugf("error getting share by hash: %v", err)
 						}
 					}
@@ -272,14 +284,12 @@ func withOrWithoutUserHelper(fn handleFunc) handleFunc {
 			}
 		}
 
-		// If this is a share request, always create a share context (even if invalid)
 		if isShareRequest {
-			if link != nil {
-				data.share = link
+			if haveSnap {
+				data.share = snap
 				data.shareValid = true
 			} else {
-				// Create an empty share with just the hash for invalid shares
-				data.share = &share.Link{Hash: shareHash}
+				data.share = share.Share{CreateShare: share.CreateShare{Hash: shareHash}}
 				data.shareValid = false
 			}
 		}
@@ -287,7 +297,7 @@ func withOrWithoutUserHelper(fn handleFunc) handleFunc {
 		// Try to authenticate user first
 		status, err := withUserHelper(nil)(w, r, data)
 		if err == nil && status < 400 {
-			if data.share != nil && data.shareValid {
+			if data.shareValid && data.share.Hash != "" {
 				if data.user != nil {
 					data.user.CustomTheme = data.share.ShareTheme
 				}
@@ -301,7 +311,7 @@ func withOrWithoutUserHelper(fn handleFunc) handleFunc {
 			userFromExpiredToken := extractUserFromExpiredToken(r, data)
 			if userFromExpiredToken != nil {
 				data.user = userFromExpiredToken
-				if data.share != nil && data.shareValid {
+				if data.shareValid && data.share.Hash != "" {
 					data.user.CustomTheme = data.share.ShareTheme
 				}
 				setUserInResponseWriter(w, data.user)
@@ -309,11 +319,13 @@ func withOrWithoutUserHelper(fn handleFunc) handleFunc {
 			}
 
 			// No valid token or user found, fall back to anonymous
-			data.user = &users.User{Username: "anonymous"}
+			data.user = &users.User{
+				FrontendUser: users.FrontendUser{Username: "anonymous"},
+			}
 			settings.ApplyUserDefaults(data.user)
 			// Clear any user data that might have been partially set
 			data.token = ""
-			if data.share != nil && data.shareValid {
+			if data.shareValid && data.share.Hash != "" {
 				data.user.CustomTheme = data.share.ShareTheme
 			}
 			// Call the handler function without user context
