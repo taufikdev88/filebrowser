@@ -4,7 +4,7 @@ import "strings"
 
 // PrepForFrontend fills FrontendUser from the backend fields (scopes/links/locale/TOTP display).
 func (u *User) PrepForFrontend() {
-	u.Scopes = u.GetFrontendScopes()
+	u.FrontendScopes = u.GetFrontendScopes()
 	u.SidebarLinks = u.GetFrontendSidebarLinks()
 	u.Password = ""
 	u.OtpEnabled = u.TOTPSecret != ""

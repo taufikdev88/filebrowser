@@ -59,10 +59,10 @@ func reconcileSharesAfterMove(isSrcDir bool, sourceIndex, destIndex, realsrc, re
 	)
 	if err != nil {
 		logger.Errorf("reconcile shares after move: %v", err)
-		return
-	}
-	for _, h := range hashes {
-		shareStore.ForgetShare(h)
+	} else {
+		for _, h := range hashes {
+			shareStore.ForgetShare(h)
+		}
 	}
 }
 

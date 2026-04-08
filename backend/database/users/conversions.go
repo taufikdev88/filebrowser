@@ -24,11 +24,9 @@ func (u *User) GetSourceNames() []string {
 	return sources
 }
 
-// GetBackendScopes converts the user's scopes from frontend-style to backend-style
+// GetBackendScopes converts FrontendScopes (source names or paths from the client) to BackendScopes (paths).
 func (u *User) GetBackendScopes() ([]SourceScope, error) {
-	// Only convert scopes if they are not empty
-	// Empty scopes during update should remain empty (not filled with defaults)
-	if len(u.Scopes) == 0 {
+	if len(u.FrontendScopes) == 0 {
 		return []SourceScope{}, nil
 	}
 	if sourceConfig == nil {
@@ -36,7 +34,7 @@ func (u *User) GetBackendScopes() ([]SourceScope, error) {
 	}
 
 	newScopes := []SourceScope{}
-	for _, scope := range u.Scopes {
+	for _, scope := range u.FrontendScopes {
 		// First check if its already a path name and keep it
 		source, ok := sourceConfig.GetSourceByPath(scope.Name)
 		if ok {
@@ -69,8 +67,7 @@ func (u *User) GetBackendScopes() ([]SourceScope, error) {
 	return newScopes, nil
 }
 
-// GetFrontendScopes converts the user's scopes from backend-style to frontend-style
-// Backend scopes use source paths, frontend scopes use source names
+// GetFrontendScopes returns API-style scopes from BackendScopes only (source display names).
 func (u *User) GetFrontendScopes() []SourceScope {
 	if sourceConfig == nil {
 		return []SourceScope{}

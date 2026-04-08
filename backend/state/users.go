@@ -173,7 +173,7 @@ func CreateUser(user *users.User, plaintextPassword string) error {
 	if err != nil {
 		return err
 	}
-	if len(user.Scopes) > 0 {
+	if len(user.FrontendScopes) > 0 {
 		user.BackendScopes = adjustedScopes
 	} else if len(user.BackendScopes) == 0 {
 		user.BackendScopes = adjustedScopes
