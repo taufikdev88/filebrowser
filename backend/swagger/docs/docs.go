@@ -5948,7 +5948,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "maxBandwidth": {
-                    "description": "KB/s cap; 0 = unlimited",
                     "type": "integer"
                 },
                 "password": {
@@ -5981,8 +5980,7 @@ const docTemplate = `{
                         "$ref": "#/definitions/users.SidebarLink"
                     }
                 },
-                "source": {
-                    "description": "configured source name",
+                "sourceName": {
                     "type": "string"
                 },
                 "sourceURL": {
@@ -6104,7 +6102,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "maxBandwidth": {
-                    "description": "KB/s cap; 0 = unlimited",
                     "type": "integer"
                 },
                 "password": {
@@ -6140,7 +6137,10 @@ const docTemplate = `{
                         "$ref": "#/definitions/users.SidebarLink"
                     }
                 },
-                "source": {
+                "sourceName": {
+                    "type": "string"
+                },
+                "sourcePath": {
                     "type": "string"
                 },
                 "sourceURL": {

@@ -5937,7 +5937,6 @@
                     "type": "boolean"
                 },
                 "maxBandwidth": {
-                    "description": "KB/s cap; 0 = unlimited",
                     "type": "integer"
                 },
                 "password": {
@@ -5970,8 +5969,7 @@
                         "$ref": "#/definitions/users.SidebarLink"
                     }
                 },
-                "source": {
-                    "description": "configured source name",
+                "sourceName": {
                     "type": "string"
                 },
                 "sourceURL": {
@@ -6093,7 +6091,6 @@
                     "type": "boolean"
                 },
                 "maxBandwidth": {
-                    "description": "KB/s cap; 0 = unlimited",
                     "type": "integer"
                 },
                 "password": {
@@ -6129,7 +6126,10 @@
                         "$ref": "#/definitions/users.SidebarLink"
                     }
                 },
-                "source": {
+                "sourceName": {
+                    "type": "string"
+                },
+                "sourcePath": {
                     "type": "string"
                 },
                 "sourceURL": {

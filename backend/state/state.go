@@ -82,7 +82,7 @@ func Initialize(dbPath string) (bool, error) {
 	}
 	for _, link := range sharesList {
 		sharesByHash[link.Hash] = link
-		pathKey := makePathKey(link.Source, link.Path)
+		pathKey := makePathKey(link.SourcePath, link.Path)
 		sharesByPath[pathKey] = append(sharesByPath[pathKey], link.Hash)
 	}
 	logger.Debugf("Loaded %d shares", len(sharesList))

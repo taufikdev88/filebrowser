@@ -467,7 +467,7 @@ func publicPauseHandler(w http.ResponseWriter, r *http.Request, d *requestContex
 	if d.share.ShareType != "upload" && !d.share.AllowCreate {
 		return http.StatusForbidden, fmt.Errorf("pausing uploads is not allowed for this share")
 	}
-	src, ok := config.Server.SourceMap[d.share.Source]
+	src, ok := config.Server.SourceMap[d.share.SourcePath]
 	if !ok {
 		return http.StatusNotFound, fmt.Errorf("source not found")
 	}

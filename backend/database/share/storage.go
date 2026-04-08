@@ -77,7 +77,7 @@ func (s *Storage) setCacheLocked(link *Share) {
 		return
 	}
 	adjustedPath := utils.AddTrailingSlashIfNotExists(link.Path)
-	adjustedSource := utils.AddTrailingSlashIfNotExists(link.Source)
+	adjustedSource := utils.AddTrailingSlashIfNotExists(link.SourcePath)
 	s.shareByHash[link.Hash] = link
 	key := pathKey(adjustedSource, adjustedPath)
 	if s.shareByPath[key] == nil {
@@ -101,7 +101,7 @@ func (s *Storage) deleteFromCacheLocked(hash string) {
 		return
 	}
 	adjustedPath := utils.AddTrailingSlashIfNotExists(link.Path)
-	adjustedSource := utils.AddTrailingSlashIfNotExists(link.Source)
+	adjustedSource := utils.AddTrailingSlashIfNotExists(link.SourcePath)
 	key := pathKey(adjustedSource, adjustedPath)
 	if inner, ok := s.shareByPath[key]; ok {
 		delete(inner, hash)
@@ -341,7 +341,7 @@ func (s *Storage) UpdateShares(oldSource, oldPath, newSource, newPath string) (i
 
 	updated := 0
 	for _, l := range links {
-		if l == nil || l.Source != oldSource {
+		if l == nil || l.SourcePath != oldSource {
 			continue
 		}
 		l.Path = utils.AddTrailingSlashIfNotExists(l.Path)
@@ -351,7 +351,7 @@ func (s *Storage) UpdateShares(oldSource, oldPath, newSource, newPath string) (i
 			continue
 		}
 
-		l.Source = newSource
+		l.SourcePath = newSource
 		l.Path = newPath
 
 		if err := s.back.Save(l); err != nil {
@@ -380,7 +380,7 @@ func (s *Storage) UpdateSharePath(hash, newPath string) error {
 		return err
 	}
 
-	s.setCacheAfterMove(link, link.Source, oldPath)
+	s.setCacheAfterMove(link, link.SourcePath, oldPath)
 
 	logger.Debug("share path updated", "hash", hash, "fromPath", oldPath, "toPath", newPath)
 	return nil

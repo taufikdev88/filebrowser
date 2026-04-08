@@ -11,9 +11,8 @@ func (u *User) GetSourceNames() []string {
 		return []string{}
 	}
 
-	sources := []string{}
 	allSources := sourceConfig.GetAllSources()
-
+	sources := []string{}
 	// Preserves order of sources
 	for _, source := range allSources {
 		_, err := u.GetScopeForSourcePath(source.Path)

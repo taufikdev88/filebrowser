@@ -100,7 +100,7 @@ func withHashFileHelper(fn handleFunc) handleFunc {
 				return status, fmt.Errorf("could not authenticate share request")
 			}
 		}
-		source, ok := config.Server.SourceMap[link.Source]
+		source, ok := config.Server.SourceMap[link.SourcePath]
 		if !ok {
 			return http.StatusNotFound, fmt.Errorf("source not found")
 		}
