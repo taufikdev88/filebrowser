@@ -119,14 +119,12 @@ func normalizeUserScopesBeforeSQLite(user *users.User) error {
 	if len(user.BackendScopes) > 0 {
 		return nil
 	}
-	if len(user.FrontendScopes) == 0 {
-		return nil
-	}
-	backend, err := user.GetBackendScopes()
+	backendScopes, err := users.APIScopesToBackend(user.FrontendScopes)
 	if err != nil {
 		return fmt.Errorf("convert frontend scopes to backend: %w", err)
 	}
-	user.BackendScopes = backend
+	user.FrontendScopes = nil
+	user.BackendScopes = backendScopes
 	return nil
 }
 

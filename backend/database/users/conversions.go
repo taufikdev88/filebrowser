@@ -23,9 +23,9 @@ func (u *User) GetSourceNames() []string {
 	return sources
 }
 
-// GetBackendScopes converts FrontendScopes (source names or paths from the client) to BackendScopes (paths).
-func (u *User) GetBackendScopes() ([]SourceScope, error) {
-	if len(u.FrontendScopes) == 0 {
+// APIScopesToBackend maps json "scopes" payloads (source display name or filesystem path + scope path)
+func APIScopesToBackend(apiScopes []SourceScope) ([]SourceScope, error) {
+	if len(apiScopes) == 0 {
 		return []SourceScope{}, nil
 	}
 	if sourceConfig == nil {
@@ -33,23 +33,9 @@ func (u *User) GetBackendScopes() ([]SourceScope, error) {
 	}
 
 	newScopes := []SourceScope{}
-	for _, scope := range u.FrontendScopes {
-		// First check if its already a path name and keep it
-		source, ok := sourceConfig.GetSourceByPath(scope.Name)
-		if ok {
-			if scope.Scope == "" {
-				scope.Scope = source.DefaultUserScope
-			}
-			scope.Scope = normalizeScope(scope.Scope)
-			newScopes = append(newScopes, SourceScope{
-				Name:  source.Path, // backend name is path
-				Scope: scope.Scope,
-			})
-			continue
-		}
-
+	for _, scope := range apiScopes {
 		// Check if its the name of a source and convert it to a path
-		source, ok = sourceConfig.GetSourceByName(scope.Name)
+		source, ok := sourceConfig.GetSourceByName(scope.Name)
 		if !ok {
 			// source might no longer be configured
 			continue

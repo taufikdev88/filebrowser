@@ -68,14 +68,12 @@ type Preview struct {
 }
 
 // FrontendUser holds fields safe to return from user APIs (embedded on User).
-// FrontendScopes and SidebarLinks are derived for the client; see PrepForFrontend.
 type FrontendUser struct {
 	NonAdminEditable
 	DisableSettings bool          `json:"disableSettings"`
 	Username        string        `json:"username"`
-	// FrontendScopes use source display names (from config); persisted authority is User.BackendScopes.
-	FrontendScopes []SourceScope `json:"scopes"`
-	Scope          string        `json:"scope,omitempty"`
+	FrontendScopes  []SourceScope `json:"scopes"`
+	Scope           string        `json:"scope,omitempty"`
 	LockPassword    bool          `json:"lockPassword"`
 	Permissions     Permissions   `json:"permissions"`
 	LoginMethod     LoginMethod   `json:"loginMethod"`
@@ -88,9 +86,9 @@ type FrontendUser struct {
 // User is the persisted user: frontend-facing data plus id, backend scopes, and secrets.
 type User struct {
 	FrontendUser
-	ID            uint64               `json:"id,omitempty"`
+	ID uint64 `json:"id,omitempty"`
 	// BackendScopes store source root paths (Name = path); persisted in user_data JSON key "scopes".
-	BackendScopes []SourceScope `json:"backendScopes,omitempty"`
+	BackendScopes []SourceScope        `json:"backendScopes,omitempty"`
 	ApiKeys       map[string]AuthToken `json:"apiKeys,omitempty"` // deprecated: use Tokens instead
 	Tokens        map[string]AuthToken `json:"tokens,omitempty"`
 	TOTPSecret    string               `json:"totpSecret,omitempty"`
