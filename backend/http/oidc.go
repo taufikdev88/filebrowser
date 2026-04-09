@@ -77,9 +77,9 @@ func extractGroupsFromOIDCClaims(claims map[string]interface{}, groupsClaimField
 	return groups
 }
 
-// resolveOIDCNestedClaim resolves nested OIDC claims using ':' as a separator
+// resolveOIDCNestedClaim resolves nested OIDC claims using '.' as a separator
 func resolveOIDCNestedClaim(claims map[string]interface{}, path string) interface{} {
-	parts := strings.Split(path, ":")
+	parts := strings.Split(path, ".")
 	current := interface{}(claims)
 
 	for _, part := range parts {

@@ -117,7 +117,7 @@ func TestUserInfoUnmarshaller(t *testing.T) {
 		{
 			name:        "nested single-level claim",
 			jsonData:    `{"username":"john","custom":{"groups":["admin","users"]}}`,
-			groupsClaim: "custom:groups",
+			groupsClaim: "custom.groups",
 			expected: userInfo{
 				Claims: map[string]interface{}{
 					"username": "john",
@@ -131,7 +131,7 @@ func TestUserInfoUnmarshaller(t *testing.T) {
 		{
 			name:        "keycloak resource_access nested structure",
 			jsonData:    `{"sub":"user123","resource_access":{"filebrowser-client":{"roles":["admin","editor","viewer"]}}}`,
-			groupsClaim: "resource_access:filebrowser-client:roles",
+			groupsClaim: "resource_access.filebrowser-client.roles",
 			expected: userInfo{
 				Claims: map[string]interface{}{
 					"sub": "user123",
@@ -147,7 +147,7 @@ func TestUserInfoUnmarshaller(t *testing.T) {
 		{
 			name:        "nested claim with single string value",
 			jsonData:    `{"username":"bob","auth":{"group":"admin"}}`,
-			groupsClaim: "auth:group",
+			groupsClaim: "auth.group",
 			expected: userInfo{
 				Claims: map[string]interface{}{
 					"username": "bob",
@@ -161,7 +161,7 @@ func TestUserInfoUnmarshaller(t *testing.T) {
 		{
 			name:        "invalid nested path returns empty groups",
 			jsonData:    `{"username":"alice","custom":{"roles":["user"]}}`,
-			groupsClaim: "custom:nonexistent:roles",
+			groupsClaim: "custom.nonexistent.roles",
 			expected: userInfo{
 				Claims: map[string]interface{}{
 					"username": "alice",
