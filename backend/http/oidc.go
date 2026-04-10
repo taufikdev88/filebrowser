@@ -42,7 +42,7 @@ func (u *userInfoUnmarshaller) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// Extract groups if configured (supports nested claims like "resource_access:filebrowser-client:roles")
+	// Extract groups if configured (supports nested claims like "resource_access.filebrowser-client.roles")
 	if u.groupsClaim != "" {
 		u.userInfo.Groups = extractGroupsFromOIDCClaims(raw, u.groupsClaim)
 	}
@@ -52,7 +52,7 @@ func (u *userInfoUnmarshaller) UnmarshalJSON(data []byte) error {
 }
 
 // extractGroupsFromOIDCClaims extracts groups from OIDC claims supporting nested paths.
-// Supports both direct claims (e.g., "groups") and nested claims using ':' separator (e.g., "resource_access:filebrowser-client:roles")
+// Supports both direct claims (e.g., "groups") and nested claims using '.' separator (e.g., "resource_access.filebrowser-client.roles")
 func extractGroupsFromOIDCClaims(claims map[string]interface{}, groupsClaimField string) []string {
 	var groups []string
 
@@ -60,7 +60,7 @@ func extractGroupsFromOIDCClaims(claims map[string]interface{}, groupsClaimField
 		return groups
 	}
 
-	// Try to resolve nested path first (e.g., "custom:groups")
+	// Try to resolve nested path first (e.g., "custom.groups")
 	groupsVal := resolveOIDCNestedClaim(claims, groupsClaimField)
 
 	if groupsVal == nil {
@@ -99,25 +99,31 @@ func resolveOIDCNestedClaim(claims map[string]interface{}, path string) interfac
 }
 
 // parseOIDCGroupsValue parses OIDC claim values into a string slice of groups
+// Returns nil for missing/empty non-array values, []string{} for empty arrays
 func parseOIDCGroupsValue(groupsVal interface{}) []string {
 	var groups []string
 
 	switch val := groupsVal.(type) {
 	case map[string]interface{}:
-		// Groups as map keys
+		// Groups as map keys - return empty slice for empty map
 		groups = slices.Collect(maps.Keys(val))
 	case []interface{}:
-		// Groups as array of interfaces
+		// Groups as array of interfaces - always initialize as empty slice for arrays
+		groups = []string{}
 		for _, g := range val {
 			if groupStr, ok := g.(string); ok {
 				groups = append(groups, strings.TrimSpace(groupStr))
 			}
 		}
 	case []string:
-		// Groups as array of strings
+		// Groups as array of strings - always initialize as empty slice for arrays
 		groups = val
+		if groups == nil {
+			groups = []string{}
+		}
 	case string:
 		// Single group as string or comma-separated groups
+		// Return nil for empty strings, parsed array otherwise
 		if val != "" {
 			parts := strings.Split(val, ",")
 			for i := range parts {
@@ -125,12 +131,18 @@ func parseOIDCGroupsValue(groupsVal interface{}) []string {
 			}
 			groups = parts
 		}
+		// else: groups stays nil for empty string
 	default:
 		// Try to unmarshal as JSON array
 		if jsonBytes, err := json.Marshal(val); err == nil {
 			var groupsArray []string
 			if err := json.Unmarshal(jsonBytes, &groupsArray); err == nil {
-				groups = groupsArray
+				// Initialize as empty slice if array was parsed
+				if groupsArray == nil {
+					groups = []string{}
+				} else {
+					groups = groupsArray
+				}
 			}
 		}
 	}

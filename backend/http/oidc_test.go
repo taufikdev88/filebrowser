@@ -169,7 +169,7 @@ func TestUserInfoUnmarshaller(t *testing.T) {
 						"roles": []interface{}{"user"},
 					},
 				},
-				Groups: []string{},
+				Groups: nil,
 			},
 		},
 	}
